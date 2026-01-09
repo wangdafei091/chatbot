@@ -484,7 +484,7 @@
             display: flex;
             flex-direction: column;
             gap: var(--spacing-sm);
-            width: 100%;
+            width: calc(100% - 116px);  /* 减去左边距，避免超出容器 */
             margin-left: 116px;
         }
 
@@ -786,13 +786,14 @@
         @media (max-width: 420px) {
             .prompt-suggestions {
                 margin-left: 0;  /* 在小屏幕上移除左边距 */
-                width: 100%;  /* 确保宽度为100% */
+                width: 100%;  /* 恢复100%宽度 */
             }
         }
 
         @media (max-width: 380px) {
             .prompt-suggestions {
                 margin-left: 0;
+                width: 100%;  /* 明确设置为100% */
             }
 
             .welcome-avatar-container {
