@@ -298,7 +298,7 @@
         .messages-container {
             flex: 1;
             overflow-y: auto;
-            overflow-x: hidden;
+            overflow-x: visible;  /* 改为 visible，避免横向截断 */
             padding: var(--spacing-lg);
             padding-bottom: var(--spacing-2xl);
             display: flex;
@@ -504,6 +504,10 @@
             box-shadow: var(--shadow-soft);
             -webkit-tap-highlight-color: transparent;
             font-weight: 500;  /* 从 600 降低 */
+            width: 100%;  /* 确保按钮宽度自适应 */
+            box-sizing: border-box;  /* 包含 padding 在宽度计算中 */
+            word-wrap: break-word;  /* 允许长文本换行 */
+            overflow-wrap: break-word;  /* 兼容性更好的换行 */
         }
 
         .prompt-button:hover {
@@ -779,6 +783,13 @@
         }
 
         /* 响应式调整 */
+        @media (max-width: 420px) {
+            .prompt-suggestions {
+                margin-left: 0;  /* 在小屏幕上移除左边距 */
+                width: 100%;  /* 确保宽度为100% */
+            }
+        }
+
         @media (max-width: 380px) {
             .prompt-suggestions {
                 margin-left: 0;
