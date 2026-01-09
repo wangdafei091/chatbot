@@ -2,8 +2,14 @@
 
 > 一个温和、清爽的 AI 聊天界面，采用柔和粉彩设计，支持可配置的虚拟形象。
 
-![Version](https://img.shields.io/badge/version-1.0-success)
+![Version](https://img.shields.io/badge/version-1.0.0-success)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![HTML5](https://img.shields.io/badge/html5-E34F26?logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/css3-1572B6?logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/javascript-F7DF1E?logo=javascript&logoColor=black)
 ![Status](https://img.shields.io/badge/status-production--ready-brightgreen)
+![GitHub Issues](https://img.shields.io/github/issues/wangdafei091/chatbot)
+![GitHub Stars](https://img.shields.io/github/stars/wangdafei091/chatbot?style=social)
 
 ---
 
@@ -29,6 +35,12 @@
 
 ---
 
+## 🌐 在线演示
+
+👉 **体验在线版本**: [https://wangdafei091.github.io/chatbot/](https://wangdafei091.github.io/chatbot/)
+
+---
+
 ## 🚀 快速开始
 
 ### 直接使用
@@ -49,6 +61,25 @@ npx serve
 
 # 然后访问 http://localhost:8000
 ```
+
+---
+
+## 📸 截图展示
+
+### 主界面
+- 温和的粉彩配色
+- 左侧虚拟形象布局
+- 清晰的消息气泡
+
+### 虚拟形象切换
+- 4 个可配置角色
+- 平滑的过渡动画
+- 持久化用户选择
+
+### 响应式设计
+- 完美适配桌面端
+- 移动端友好布局
+- 触摸优化交互
 
 ---
 
