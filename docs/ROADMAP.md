@@ -22,6 +22,7 @@
 
 **已完成**：
 - ✅ 真实 AI API 集成（GLM-4、DeepSeek）
+- ✅ **流式响应（SSE 打字机效果）** ✨
 - ✅ 多轮对话上下文记忆
 - ✅ 对话历史保存（localStorage）
 - ✅ 完整的本地开发环境
@@ -72,7 +73,8 @@
 ### API 架构
 
 **后端接口**：
-- `POST /api/chat` - 聊天接口
+- `POST /api/chat` - 聊天接口（普通响应）
+- `POST /api/chat/stream` - **流式聊天接口（SSE）** ✨
 - `GET /api/health` - 健康检查
 - `GET /api/models` - 模型列表
 - `POST /api/set-model` - 切换模型
@@ -80,6 +82,8 @@
 
 **前端功能**：
 - API 调用封装
+- **流式响应处理（ReadableStream + SSE）** ✨
+- 实时打字机效果
 - 对话历史管理
 - 错误处理
 - localStorage 持久化
@@ -93,18 +97,20 @@
 **目标**：本地运行真实 AI 对话
 
 **已完成**：
-- ✅ Node.js 后端服务搭建
-- ✅ GLM-4 和 DeepSeek API 集成
+- ✅ Node.js 后端服务搭建（587 行）
+- ✅ GLM-4 和 DeepSeek API 集成（普通 + 流式）
 - ✅ 前端 API 调用实现
+- ✅ **流式响应实现（SSE + ReadableStream）** ✨
 - ✅ 对话历史管理
 - ✅ 错误处理机制
 - ✅ 本地开发环境配置
 - ✅ 完整文档体系
 
 **技术实现**：
-- 后端：`server.js`（约 300 行）
-- 前端修改：`index.html`（添加 API 集成）
+- 后端：`server.js`（587 行，含流式接口）
+- 前端：`index.html`（1272 行，含流式处理）
 - 配置：`.env` 环境变量管理
+- 流式技术：Server-Sent Events (SSE) + ReadableStream API
 
 ---
 
@@ -112,15 +118,18 @@
 
 **目标**：提升用户体验和功能完整性
 
-#### 高优先级功能
+#### ✅ 已完成功能
 
-**1. 流式响应（SSE）** 🔴
-- 打字机效果
-- 后端 Server-Sent Events
-- 前端逐字显示
-- 提升所有场景的对话体验
+**1. 流式响应（SSE）** ✅ ✨
+- ✅ 打字机效果（实时逐字显示）
+- ✅ 后端 Server-Sent Events 接口（`/api/chat/stream`）
+- ✅ 前端 ReadableStream 处理
+- ✅ GLM-4 流式调用（`chatWithGLMStream`）
+- ✅ DeepSeek 流式调用（`chatWithDeepSeekStream`）
+- ✅ 流中断错误处理
+- ✅ 提升所有场景的对话体验
 
-#### 中优先级功能
+#### 中优先级功能（待开发）
 
 **2. 历史对话管理**
 - 查看历史对话列表
@@ -168,13 +177,13 @@
 
 **当前状态**：
 - ✅ 基础 UI 框架
-- ✅ GLM-4 集成
-- ✅ DeepSeek Chat 集成
+- ✅ GLM-4 集成（普通 + 流式）
+- ✅ DeepSeek Chat 集成（普通 + 流式）
 - ✅ 多轮对话上下文
 - ✅ 对话历史保存
+- ✅ **流式响应（SSE）** ✨
 
 **待实现**：
-- [ ] 流式响应（SSE / WebSocket）
 - [ ] 图片生成和显示
 - [ ] 文件上传和分析
 - [ ] 语音消息（转文字）

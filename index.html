@@ -1081,8 +1081,8 @@
             showTypingIndicator();
 
             try {
-                // 调用后端 API
-                const response = await fetch(`${API_BASE_URL}/api/chat`, {
+                // 调用后端流式 API
+                const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1095,33 +1095,74 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                    throw new Error(`HTTP ${response.status}`);
                 }
 
-                const data = await response.json();
-
-                // 隐藏输入指示器
+                // 隐藏"正在输入"动画
                 hideTypingIndicator();
 
-                // 添加 AI 回复到界面
-                addMessage(data.reply, 'ai');
+                // 创建 AI 消息容器（初始为空）
+                const aiMessageId = 'ai-' + Date.now();
+                addMessage('', 'ai', aiMessageId);
+                const messageElement = document.getElementById(aiMessageId);
+                const contentElement = messageElement.querySelector('.bubble');
 
-                // 保存到对话历史
-                conversationHistory.push({
-                    role: 'assistant',
-                    content: data.reply
-                });
+                // 读取流式响应
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullResponse = '';
 
-                // 保存到 localStorage
-                saveConversationHistory();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                // 显示模型信息（可选）
-                console.log(`✓ 使用 ${data.model} (${data.provider}) 回复`);
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6).trim();
+                            if (!data) continue;
+
+                            try {
+                                const parsed = JSON.parse(data);
+
+                                if (parsed.type === 'start') {
+                                    console.log(`✓ 开始流式响应，模型: ${parsed.provider}`);
+                                } else if (parsed.type === 'content') {
+                                    // 追加内容到消息
+                                    fullResponse += parsed.content;
+                                    contentElement.textContent = fullResponse;
+                                    scrollToBottom();
+                                } else if (parsed.type === 'error') {
+                                    // 显示错误
+                                    contentElement.textContent = `错误：${parsed.error}`;
+                                    fullResponse = '';  // 清空，不保存错误消息
+                                } else if (parsed.type === 'done') {
+                                    // 流式响应完成
+                                    console.log('✓ 流式响应完成');
+                                }
+                            } catch (e) {
+                                console.warn('Parse SSE data error:', e.message);
+                            }
+                        }
+                    }
+                }
+
+                // 如果成功获取到回复，保存到对话历史
+                if (fullResponse) {
+                    conversationHistory.push({
+                        role: 'assistant',
+                        content: fullResponse
+                    });
+
+                    // 保存到 localStorage
+                    saveConversationHistory();
+                }
 
             } catch (error) {
                 hideTypingIndicator();
-                console.error('❌ API 调用失败:', error);
+                console.error('❌ 流式 API 调用失败:', error);
 
                 // 显示错误消息
                 const errorMessage = `抱歉，发生了错误：${error.message}`;
@@ -1162,12 +1203,13 @@
             }
         }
 
-        function addMessage(text, type) {
+        function addMessage(text, type, id = null) {
             const container = document.getElementById('messagesContainer');
             const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
+            if (id) messageDiv.id = id;  // 设置 ID（用于流式更新）
 
             const avatar = type === 'ai' ? currentAvatar.emoji : '🌿';
 
