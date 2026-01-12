@@ -925,6 +925,15 @@
             status: '在线'
         };
 
+        // ===== API 配置 =====
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000'
+            : '';  // 生产环境使用相对路径
+
+        // 对话历史
+        let conversationHistory = [];
+        let currentProvider = 'glm';  // 默认使用 GLM
+
         const avatarDatabase = {
             '小樱': {
                 emoji: '🌸',
@@ -1038,12 +1047,13 @@
             sendMessage();
         }
 
-        function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
 
             if (!message) return;
 
+            // 隐藏欢迎界面
             const welcome = document.getElementById('robotWelcome');
             const decoration = document.getElementById('emptyStateDecoration');
             if (welcome) {
@@ -1053,19 +1063,103 @@
                 decoration.style.display = 'none';
             }
 
+            // 添加用户消息到界面
             addMessage(message, 'user');
 
+            // 添加到对话历史
+            conversationHistory.push({
+                role: 'user',
+                content: message
+            });
+
+            // 清空输入框
             input.value = '';
             input.style.height = 'auto';
             updateSendButton();
 
+            // 显示"正在输入"动画
             showTypingIndicator();
 
-            setTimeout(() => {
+            try {
+                // 调用后端 API
+                const response = await fetch(`${API_BASE_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        history: conversationHistory.slice(0, -1),  // 不包含当前消息
+                        provider: currentProvider
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // 隐藏输入指示器
                 hideTypingIndicator();
-                const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
-                addMessage(randomResponse, 'ai');
-            }, 1000 + Math.random() * 1000);
+
+                // 添加 AI 回复到界面
+                addMessage(data.reply, 'ai');
+
+                // 保存到对话历史
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: data.reply
+                });
+
+                // 保存到 localStorage
+                saveConversationHistory();
+
+                // 显示模型信息（可选）
+                console.log(`✓ 使用 ${data.model} (${data.provider}) 回复`);
+
+            } catch (error) {
+                hideTypingIndicator();
+                console.error('❌ API 调用失败:', error);
+
+                // 显示错误消息
+                const errorMessage = `抱歉，发生了错误：${error.message}`;
+                addMessage(errorMessage, 'ai');
+
+                // 移除用户消息（因为失败了）
+                conversationHistory.pop();
+            }
+        }
+
+        // 保存对话历史到 localStorage
+        function saveConversationHistory() {
+            try {
+                localStorage.setItem('chatbot_history', JSON.stringify(conversationHistory));
+                localStorage.setItem('chatbot_provider', currentProvider);
+            } catch (error) {
+                console.warn('无法保存对话历史:', error);
+            }
+        }
+
+        // 从 localStorage 加载对话历史
+        function loadConversationHistory() {
+            try {
+                const saved = localStorage.getItem('chatbot_history');
+                const savedProvider = localStorage.getItem('chatbot_provider');
+
+                if (saved) {
+                    conversationHistory = JSON.parse(saved);
+                    // 可选：恢复历史消息到界面
+                    // conversationHistory.forEach(msg => addMessage(msg.content, msg.role === 'assistant' ? 'ai' : 'user'));
+                }
+
+                if (savedProvider) {
+                    currentProvider = savedProvider;
+                }
+            } catch (error) {
+                console.warn('无法加载对话历史:', error);
+            }
         }
 
         function addMessage(text, type) {
@@ -1126,6 +1220,9 @@
 
         window.onload = () => {
             document.getElementById('messageInput').focus();
+            loadConversationHistory();
+            console.log('✓ 聊天机器人已启动');
+            console.log(`✓ 当前使用模型: ${currentProvider.toUpperCase()}`);
         };
     </script>
 </body>

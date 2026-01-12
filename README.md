@@ -1,19 +1,26 @@
 # AI 智能助手 - Soft Pastel 版
 
-> 一个温和、清爽的 AI 聊天界面，采用柔和粉彩设计，支持可配置的虚拟形象。
+> 一个温和、清爽的 AI 聊天机器人，采用柔和粉彩设计，集成真实 AI 模型（GLM、DeepSeek），支持可配置的虚拟形象。
 
-![Version](https://img.shields.io/badge/version-1.0.0-success)
+![Version](https://img.shields.io/badge/version-2.0.0-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![HTML5](https://img.shields.io/badge/html5-E34F26?logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/css3-1572B6?logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/javascript-F7DF1E?logo=javascript&logoColor=black)
-![Status](https://img.shields.io/badge/status-production--ready-brightgreen)
+![Node.js](https://img.shields.io/badge/node.js-18+-green)
+![Status](https://img.shields.io/badge/status-AI%20Integrated-brightgreen)
 ![GitHub Issues](https://img.shields.io/github/issues/wangdafei091/chatbot)
 ![GitHub Stars](https://img.shields.io/github/stars/wangdafei091/chatbot?style=social)
 
 ---
 
 ## ✨ 特性
+
+### 🤖 AI 模型集成
+- **多模型支持** - GLM-4（智谱AI）、DeepSeek Chat
+- **智能对话** - 真实 AI 响应，支持多轮对话
+- **上下文记忆** - 自动保存对话历史
+- **模型切换** - 灵活切换不同 AI 提供商
 
 ### 🎨 视觉设计
 - **柔和粉彩配色** - 薄荷绿、桃色、淡紫的温馨组合
@@ -23,7 +30,7 @@
 
 ### 🤖 虚拟形象系统
 - **多角色选择** - 4 个预设虚拟形象（小樱🌸、咪咪🐱、小智🤖、阿狐🦊）
-- **持久化存储** - 自动保存用户选择
+- **持久化存储** - 自动保存用户选择和对话历史
 - **表情动画** - 眨眼、浮动等生动效果
 - **可扩展架构** - 预留 Lottie 和 3D 模型接口
 
@@ -41,26 +48,69 @@
 
 ---
 
+## 📚 文档导航
+
+### 🎯 我想...
+
+**快速上手**
+- 📘 [快速入门指南](docs/GETTING_STARTED.md) - 5 分钟上手
+- 🔧 [详细搭建指南](docs/SETUP_GUIDE.md) - 完整配置和故障排查
+
+**了解项目**
+- 📖 [项目说明](README.md) - 本文档
+- 🗺️ [完整路线图](docs/ROADMAP.md) - 技术架构和功能规划
+
+**参与开发**
+- 📊 [实施进度](docs/PROGRESS.md) - 已完成和待办任务
+- 🚀 [下一步计划](docs/PROGRESS.md#下一步开发计划) - 短期开发计划
+
+**自定义配置**
+- 🎨 [虚拟形象配置](docs/AVATAR_GUIDE.md) - 自定义虚拟形象
+- 🐙 [GitHub 配置](docs/GITHUB_SETUP.md) - GitHub 仓库设置
+
+---
+
 ## 🚀 快速开始
 
-### 直接使用
+### 方式 1：本地完整运行（推荐）✨
+
+支持真实 AI 对话功能，需要 Node.js 18+：
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/wangdafei091/chatbot.git
+cd chatbot
+
+# 2. 安装依赖
+npm install
+
+# 3. 配置 API Key
+cp .env.example .env
+# 编辑 .env 文件，填入你的 GLM 或 DeepSeek API Key
+
+# 4. 启动后端服务
+npm start
+
+# 5. 浏览器访问
+open http://localhost:3000
+```
+
+**详细说明**：查看 [快速入门指南](docs/GETTING_STARTED.md) | [详细搭建指南](docs/SETUP_GUIDE.md)
+
+### 方式 2：纯前端静态运行
+
+仅展示 UI（无 AI 功能）：
+
 ```bash
 # 在浏览器中打开
 open index.html
 
-# 或者双击 index.html 文件
-```
-
-### 本地服务器（推荐）
-```bash
-# Python 3
+# 或使用本地服务器
 python -m http.server 8000
-
-# Node.js
-npx serve
-
 # 然后访问 http://localhost:8000
 ```
+
+> ⚠️ **注意**：静态运行模式下，AI 响应是模拟的（仅用于演示 UI）
 
 ---
 
@@ -87,27 +137,44 @@ npx serve
 
 ```
 chatbot/
-├── index.html              # 主应用文件 ⭐
-├── AVATAR_GUIDE.md         # 虚拟形象配置指南
-├── FEATURE_ROADMAP.md      # 功能开发路线图
-└── README.md              # 本文档
+├── index.html                 # 前端主应用（已集成 API 调用）⭐
+├── server.js                  # Node.js 后端服务 ⭐
+├── package.json               # Node.js 依赖配置
+├── .env                       # 环境变量（API Key 配置）
+├── .env.example               # 环境变量模板
+├── README.md                  # 项目说明（本文件）
+├── DOCUMENTATION_AUDIT.md     # 文档优化分析报告
+├── docs/                      # 📁 文档目录
+│   ├── GETTING_STARTED.md    # 快速入门指南 📘
+│   ├── SETUP_GUIDE.md        # 详细搭建指南
+│   ├── ROADMAP.md            # 完整开发路线图 🗺️
+│   ├── PROGRESS.md           # 实施进度与下一步 📊
+│   ├── AVATAR_GUIDE.md       # 虚拟形象配置指南
+│   └── GITHUB_SETUP.md       # GitHub 配置指南
+└── LICENSE                    # MIT 许可证
 ```
 
 ---
 
 ## 🎯 核心功能
 
-### 1. 虚拟形象切换
+### 1. AI 智能对话 ✨
+- 支持多个 AI 模型（GLM-4、DeepSeek Chat）
+- 多轮对话上下文记忆
+- 对话历史自动保存（localStorage）
+- 错误处理和重试机制
+
+### 2. 虚拟形象切换
 点击左上角的虚拟形象即可切换角色：
 - 🌸 **小樱** - 温柔型
 - 🐱 **咪咪** - 调皮型
 - 🤖 **小智** - 理性型
 - 🦊 **阿狐** - 机智型
 
-### 2. 快捷对话
+### 3. 快捷对话
 点击欢迎界面的提示按钮即可快速开始对话。
 
-### 3. 消息输入
+### 4. 消息输入
 - 输入消息后自动启用发送按钮
 - `Enter` 发送，`Shift+Enter` 换行
 - 支持多行输入（自动高度调整）
@@ -196,19 +263,32 @@ const avatarDatabase = {
 
 ## 🚧 未来功能
 
-详细的功能开发计划请参考 [FEATURE_ROADMAP.md](FEATURE_ROADMAP.md)。
+详细的功能开发计划请参考：
+- [完整路线图](docs/ROADMAP.md) - 技术架构和功能规划
+- [实施进度](docs/PROGRESS.md) - 已完成和待办任务
 
-### 短期（MVP）
-- [ ] 集成真实 AI API
+### ✅ 已完成（v2.0）
+- [x] 集成真实 AI API（GLM-4、DeepSeek）
+- [x] 对话历史管理（localStorage）
+- [x] 多轮对话上下文记忆
+- [x] 错误处理和重试机制
+- [x] 本地开发环境
+
+### 短期（v2.1）
+- [ ] 流式响应（打字机效果）
+- [ ] Markdown 渲染
+- [ ] 代码高亮显示
+- [ ] 对话历史导出
+
+### 中期（v2.5）
+- [ ] 多会话管理
+- [ ] 模型参数调整（temperature、max_tokens）
+- [ ] 提示词模板
+- [ ] 主题切换（深色模式）
+
+### 长期（v3.0）
+- [ ] 语音输入/输出
 - [ ] Lottie 动画支持
-- [ ] 对话历史管理
-
-### 中期（增强版）
-- [ ] 语音输入
-- [ ] 主题系统
-- [ ] 导出对话功能
-
-### 长期（完整版）
 - [ ] 3D 虚拟形象
 - [ ] 文件分析
 - [ ] 浏览器插件
@@ -250,6 +330,10 @@ MIT License - 详见 LICENSE 文件
 
 ---
 
-**最后更新**: 2026-01-09
-**版本**: 1.0.0
-**状态**: ✅ 生产就绪
+**最后更新**: 2026-01-12
+**版本**: 2.0.0
+**状态**: ✅ AI 已集成，可本地运行
+**下一步**:
+- [快速入门](docs/GETTING_STARTED.md) - 5 分钟上手
+- [实施进度](docs/PROGRESS.md) - 查看已完成和待办任务
+- [开发路线图](docs/ROADMAP.md) - 了解技术架构和规划
