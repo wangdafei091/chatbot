@@ -1,4 +1,31 @@
+/**
+ * AI Chatbot - 后端服务器
+ *
+ * 项目定位：轻量级AI聊天机器人（非企业级应用）
+ * 技术栈：Express.js + GLM-4/DeepSeek API
+ * 架构：单体应用，无数据库（使用localStorage）
+ *
+ * 核心特性：
+ * - 双AI模型支持（GLM-4、DeepSeek）
+ * - 流式响应（SSE - Server-Sent Events）
+ * - 多轮对话上下文记忆
+ * - 配置验证系统
+ *
+ * 重要约定：
+ * - 不要建议引入重型框架（Vue、React、NestJS）
+ * - 不要添加数据库（MongoDB、PostgreSQL）
+ * - 不要重写SSE为WebSocket
+ * - public/config.js 是自动生成的，不要手动编辑
+ *
+ * 开发前必读：
+ * - docs/ARCHITECTURE.md - 架构设计和技术栈选择理由
+ * - docs/CONTRIBUTING.md - 开发规范和常见任务指南
+ *
+ * @version 2.0.0
+ */
+
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -593,12 +620,12 @@ app.get('/api/config', (req, res) => {
 
 // ==================== 静态文件服务 ====================
 
-// 提供前端静态文件
-app.use(express.static(__dirname));
+// 提供前端静态文件（优先从 public 目录）
+app.use(express.static(path.join(__dirname, 'public')));
 
 // 所有其他路由返回 index.html（支持前端路由）
 app.get('*', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ==================== 错误处理 ====================

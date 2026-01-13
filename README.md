@@ -54,16 +54,16 @@
 ### 🎯 我想...
 
 **快速上手**
-- 📘 [快速入门指南](docs/GETTING_STARTED.md) - 5 分钟上手
-- 🔧 [详细搭建指南](docs/SETUP_GUIDE.md) - 完整配置和故障排查
+- 🔧 [搭建指南](docs/SETUP.md) - 本地开发环境配置（5 分钟上手）
 
 **了解项目**
 - 📖 [项目说明](README.md) - 本文档
-- 🗺️ [完整路线图](docs/ROADMAP.md) - 技术架构和功能规划
+- 🏗️ [架构文档](docs/ARCHITECTURE.md) - 技术架构和设计决策 ⭐
+- 🗺️ [技术路线图](docs/ROADMAP.md) - 长期规划和功能扩展
 
 **参与开发**
+- 🤝 [开发指南](docs/CONTRIBUTING.md) - 编码规范和常见任务 ⭐
 - 📊 [实施进度](docs/PROGRESS.md) - 已完成和待办任务
-- 🚀 [下一步计划](docs/PROGRESS.md#下一步开发计划) - 短期开发计划
 
 **自定义配置**
 - 🎨 [虚拟形象配置](docs/AVATAR_GUIDE.md) - 自定义虚拟形象
@@ -96,7 +96,7 @@ npm start
 open http://localhost:3000
 ```
 
-**详细说明**：查看 [快速入门指南](docs/GETTING_STARTED.md) | [详细搭建指南](docs/SETUP_GUIDE.md)
+**详细说明**：查看 [搭建指南](docs/SETUP.md)
 
 ### 方式 2：纯前端静态运行
 
@@ -138,20 +138,28 @@ python -m http.server 8000
 
 ```
 chatbot/
-├── index.html                 # 前端主应用（已集成 API 调用）⭐
 ├── server.js                  # Node.js 后端服务 ⭐
+├── config.js                  # 后端配置
+├── config/
+│   ├── validators.js          # 配置验证器
+│   └── frontend.config.js     # 前端配置源
+├── scripts/
+│   └── generate-config.js     # 配置生成脚本
+├── public/
+│   ├── index.html             # 前端主应用 ⭐
+│   └── config.js              # 前端配置（自动生成）
 ├── package.json               # Node.js 依赖配置
 ├── .env                       # 环境变量（API Key 配置）
 ├── .env.example               # 环境变量模板
 ├── README.md                  # 项目说明（本文件）
-├── DOCUMENTATION_AUDIT.md     # 文档优化分析报告
 ├── docs/                      # 📁 文档目录
-│   ├── GETTING_STARTED.md    # 快速入门指南 📘
-│   ├── SETUP_GUIDE.md        # 详细搭建指南
-│   ├── ROADMAP.md            # 完整开发路线图 🗺️
-│   ├── PROGRESS.md           # 实施进度与下一步 📊
-│   ├── AVATAR_GUIDE.md       # 虚拟形象配置指南
-│   └── GITHUB_SETUP.md       # GitHub 配置指南
+│   ├── ARCHITECTURE.md        # 架构文档（技术栈选择）🏗️ ⭐
+│   ├── CONTRIBUTING.md       # 开发指南（编码规范）🤝 ⭐
+│   ├── SETUP.md              # 本地开发环境配置 🔧
+│   ├── ROADMAP.md            # 技术路线图（长期规划）🗺️
+│   ├── PROGRESS.md           # 实施进度（短期计划）📊
+│   ├── AVATAR_GUIDE.md       # 虚拟形象配置指南 🎨
+│   └── GITHUB_SETUP.md       # GitHub 配置指南 🐙
 └── LICENSE                    # MIT 许可证
 ```
 
@@ -266,7 +274,7 @@ const avatarDatabase = {
 ## 🚧 未来功能
 
 详细的功能开发计划请参考：
-- [完整路线图](docs/ROADMAP.md) - 技术架构和功能规划
+- [技术路线图](docs/ROADMAP.md) - 技术架构和长期规划
 - [实施进度](docs/PROGRESS.md) - 已完成和待办任务
 
 ### ✅ 已完成（v2.0）
@@ -335,6 +343,6 @@ MIT License - 详见 LICENSE 文件
 **版本**: 2.0.0
 **状态**: ✅ AI 已集成，可本地运行
 **下一步**:
-- [快速入门](docs/GETTING_STARTED.md) - 5 分钟上手
+- [搭建指南](docs/SETUP.md) - 5 分钟上手
 - [实施进度](docs/PROGRESS.md) - 查看已完成和待办任务
-- [开发路线图](docs/ROADMAP.md) - 了解技术架构和规划
+- [技术路线图](docs/ROADMAP.md) - 了解技术架构和规划

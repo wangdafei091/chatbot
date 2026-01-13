@@ -4,8 +4,9 @@
   "description": "AI Chatbot with GLM and DeepSeek integration",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "npm run generate-config && node server.js",
+    "dev": "npm run generate-config && nodemon server.js",
+    "generate-config": "node scripts/generate-config.js"
   },
   "keywords": [
     "chatbot",

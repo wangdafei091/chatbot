@@ -3,7 +3,11 @@
  * 集中管理所有配置项
  */
 
-module.exports = {
+const { validateConfig } = require('./config/validators');
+
+// ==================== 配置定义 ====================
+
+const rawConfig = {
     // 服务器配置
     server: {
         port: process.env.PORT || 3000,
@@ -21,7 +25,7 @@ module.exports = {
     // 速率限制配置
     rateLimit: {
         windowMs: 15 * 60 * 1000, // 15 分钟
-        max: 100, // 每个 IP 15 分钟内最多 100 个请求
+        max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // 每个 IP 15 分钟内最多 100 个请求
         message: {
             error: '请求过于频繁，请稍后再试',
             code: 'RATE_LIMIT_EXCEEDED'
@@ -52,7 +56,7 @@ module.exports = {
 
     // 消息验证配置
     validation: {
-        maxMessageLength: 10000,
+        maxMessageLength: parseInt(process.env.MAX_MESSAGE_LENGTH) || 10000,
         minMessageLength: 1
     },
 
@@ -62,3 +66,21 @@ module.exports = {
         providers: ['glm', 'deepseek']
     }
 };
+
+// ==================== 配置验证 ====================
+
+try {
+    // 验证配置
+    const validation = validateConfig(rawConfig);
+
+    // 导出验证后的配置
+    module.exports = rawConfig;
+
+    // 将验证结果附加到配置对象（可选，用于调试）
+    module.exports._validation = validation;
+
+} catch (error) {
+    console.error('配置验证失败，应用无法启动');
+    console.error('请检查 .env 文件和配置项');
+    process.exit(1); // 配置错误时，不启动应用
+}

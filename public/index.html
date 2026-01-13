@@ -1,3 +1,28 @@
+<!--
+AI Chatbot - 前端界面
+
+项目定位：轻量级AI聊天机器人（非企业级应用）
+技术栈：HTML5 + CSS3 + 原生JavaScript
+架构：单文件应用，localStorage存储
+
+核心特性：
+- 双AI模型支持（GLM-4、DeepSeek）
+- 流式响应（SSE - Server-Sent Events）
+- 多轮对话上下文记忆
+- 虚拟形象切换
+
+重要约定：
+- 不要建议引入前端框架（Vue、React）
+- 不要重写SSE为WebSocket
+- public/config.js 是自动生成的，不要手动编辑
+- 保持单文件结构（便于快速迭代）
+
+开发前必读：
+- docs/ARCHITECTURE.md - 架构设计和技术栈选择理由
+- docs/CONTRIBUTING.md - 开发规范和常见任务指南
+
+@version 2.0.0
+-->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -7,6 +32,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700;800&family=Caveat:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- 前端配置文件 -->
+    <script src="/config.js"></script>
     <style>
         :root {
             /* 柔和粉彩色系 - 优化版 */
@@ -926,42 +953,22 @@
         };
 
         // ===== API 配置 =====
-        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:3000'
-            : '';  // 生产环境使用相对路径
+        // 从全局配置读取
+        const API_BASE_URL = window.CONFIG?.api?.baseUrl || '';
+        const API_TIMEOUT = window.CONFIG?.api?.timeout || 30000;
 
         // 对话历史
         let conversationHistory = [];
-        let currentProvider = 'glm';  // 默认使用 GLM
+        let currentProvider = window.CONFIG?.features?.defaultProvider || 'glm';
 
-        const avatarDatabase = {
+        // 虚拟形象数据库（从配置读取）
+        const avatarDatabase = window.CONFIG?.avatars || {
             '小樱': {
                 emoji: '🌸',
                 name: '小樱',
                 status: '在线',
                 personality: '温柔',
                 gradient: 'linear-gradient(135deg, #C5E8D0, #DDE8D8, #FFE5D8, #FFD4C2)',
-            },
-            '咪咪': {
-                emoji: '🐱',
-                name: '咪咪',
-                status: '在线',
-                personality: '调皮',
-                gradient: 'linear-gradient(135deg, #FFD4C2, #F5E0E0, #E8D8F0, #E2D4F0)'
-            },
-            '小智': {
-                emoji: '🤖',
-                name: '小智',
-                status: '在线',
-                personality: '理性',
-                gradient: 'linear-gradient(135deg, #E2D4F0, #D8E8F0, #C5E8D8, #C5E8D0)'
-            },
-            '阿狐': {
-                emoji: '🦊',
-                name: '阿狐',
-                status: '在线',
-                personality: '机智',
-                gradient: 'linear-gradient(135deg, #FFE5B4, #FFE0D0, #FFD8C8, #FFD4C2)'
             }
         };
 
