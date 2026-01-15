@@ -275,6 +275,93 @@
    │
    └─ 3. 服务器就绪
 ```
+## 架构概览
+
+### 技术栈选择理由
+
+| 技术 | 选择理由 | 不要替换为 |
+|------------|------------------|---------------------|
+| **Express.js** | 极简、快速开发、优秀的中间件生态 | NestJS、Koa |
+| **原生 JavaScript** | 零依赖、即时迭代、教育价值 | Vue、React、TypeScript |
+| **SSE** | 单向流（服务器→客户端）、自动重连、浏览器原生支持 | WebSocket |
+| **localStorage** | 零成本、隐私设计、无需服务器存储 | MongoDB、PostgreSQL、Redis |
+
+### 代码结构
+
+```
+Backend:
+├── server.js (678 lines) - 主服务器文件
+│   ├── AIAdapter class - AI 服务抽象层 ⭐
+│   │   ├── chatWithGLM() - GLM API 调用
+│   │   ├── chatWithDeepSeek() - DeepSeek API 调用
+│   │   ├── chatWithGLMStream() - GLM 流式调用 (SSE) ⭐
+│   │   ├── chatWithDeepSeekStream() - DeepSeek 流式调用 (SSE) ⭐
+│   │   └── chat() - 统一入口
+│   └── API 路由
+│       ├── POST /api/chat - 非流式聊天
+│       ├── POST /api/chat/stream - 流式聊天 (SSE) ⭐
+│       ├── GET /api/models - 列出可用模型
+│       ├── GET /api/health - 健康检查
+│       └── POST /api/set-model - 切换默认模型
+├── config.js - 后端配置与验证
+├── config/validators.js - 配置验证工具
+└── config/frontend.config.js - 前端配置源文件
+
+Frontend:
+└── public/index.html (1200+ lines)
+    ├── UI 渲染（消息、输入框、头像）
+    ├── sendMessage() - 发送消息（支持流式）⭐
+    ├── fetchStream() - 处理 SSE 响应 ⭐
+    └── localStorage 管理（对话历史、用户设置）
+
+Scripts:
+└── scripts/generate-config.js - 从 config/frontend.config.js 生成 public/config.js
+```
+
+## 核心架构模式
+
+### 1. AI 适配器模式
+
+所有 AI 提供商在 `AIAdapter` 类中实现相同的接口：
+
+```javascript
+// 添加新的 AI 提供商：
+static async chatWithNewProvider(message, history = []) { }
+static async chatWithNewProviderStream(message, history, onData, onError, onComplete, abortController) { }
+```
+
+### 2. 流式响应流程 (SSE)
+
+```
+用户输入 → sendMessage()
+  ↓
+POST /api/chat/stream（携带历史记录）
+  ↓
+AIAdapter.chatWithGLMStream()
+  ↓
+Axios stream → GLM API（SSE 格式）
+  ↓
+解析 SSE 数据块 → 回调函数
+  ↓
+通过 SSE 转发到前端
+  ↓
+前端 ReadableStream → 逐字追加到消息气泡
+  ↓
+保存到 localStorage
+```
+
+**关键文件**：`server.js:169-264`（GLM 流）、`server.js:270-360`（DeepSeek 流）、`public/index.html`（前端 SSE 处理）
+
+### 3. 配置生成
+
+- **源文件**：`config/frontend.config.js`
+- **生成器**：`scripts/generate-config.js`
+- **输出**：`public/config.js`（自动生成，请勿编辑）
+
+修改前端配置：
+1. 编辑 `config/frontend.config.js`
+2. 运行 `npm run generate-config`（或 `npm start`，已包含此步骤）
+3. 刷新浏览器
 
 ---
 
@@ -451,124 +538,31 @@ public/index.html (1200+行)
 ```
 
 ---
+## 重要实现细节
 
-## 扩展指南
+### SSE 流处理
 
-### 添加新的AI模型
+流式实现使用 Server-Sent Events：
+- **后端**：Axios 配置 `responseType: 'stream'`，解析 SSE 数据块
+- **前端**：Fetch API 使用 `ReadableStream`，解析 `data: {}` 行
+- **中止支持**：使用 `AbortController` 取消请求
 
-**步骤**：
+**关键**：客户端断开检测（`req.on('close')`）会中止上游 API 调用，防止资源泄漏。
 
-1. **在 `config.js` 添加配置**
-```javascript
-ai: {
-    newmodel: {
-        model: process.env.NEWMODEL_MODEL || 'newmodel-chat',
-        temperature: parseFloat(process.env.NEWMODEL_TEMPERATURE) || 0.7,
-        max_tokens: parseInt(process.env.NEWMODEL_MAX_TOKENS) || 2000,
-        timeout: parseInt(process.env.NEWMODEL_TIMEOUT) || 30000,
-        streamTimeout: parseInt(process.env.NEWMODEL_STREAM_TIMEOUT) || 60000
-    }
-}
-```
+完整流式实现参见 `server.js:462-570`。
 
-2. **在 `server.js` 添加API调用方法**
-```javascript
-static async chatWithNewModel(message, history = []) {
-    const API_KEY = this.getApiKey('newmodel');
-    const messages = this.formatMessages(message, history);
-    const cfg = config.ai.newmodel;
+### 配置验证
 
-    const response = await axios.post(
-        'https://api.newmodel.com/v1/chat',
-        { model: cfg.model, messages: messages },
-        { headers: { 'Authorization': `Bearer ${API_KEY}` } }
-    );
+`config/validators.js` 提供：
+- `validateConfig()` - 主验证函数
+- `validatePort()`、`validateNumberRange()`、`validateEnum()`、`validateUrl()`
+- 配置错误时应用退出（快速失败）
 
-    return { content: response.data.choices[0].message.content };
-}
-```
+### 速率限制
 
-3. **更新路由**
-```javascript
-// 在 chat() 方法中添加case
-case 'newmodel':
-    return await this.chatWithNewModel(message, history);
-```
+使用 `express-rate-limit`：每 IP 每 15 分钟 100 次请求。
+配置位于 `server.js:47-55`。
 
-4. **添加环境变量**
-```bash
-NEWMODEL_API_KEY=your_key_here
-NEWMODEL_MODEL=newmodel-chat
-```
-
-### 添加新的API端点
-
-**步骤**：
-
-1. **在 `server.js` 添加路由**
-```javascript
-/**
- * 新功能端点
- * POST /api/new-feature
- */
-app.post('/api/new-feature', async (req, res) => {
-    const { param1, param2 } = req.body;
-
-    // 1. 验证请求
-    if (!param1) {
-        return res.status(400).json({ error: 'param1 required' });
-    }
-
-    try {
-        // 2. 业务逻辑
-        const result = await someFunction(param1, param2);
-
-        // 3. 返回结果
-        res.json({ success: true, data: result });
-    } catch (error) {
-        console.error('New Feature Error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-```
-
-2. **前端调用**
-```javascript
-async function callNewFeature(param1, param2) {
-    const response = await fetch('/api/new-feature', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ param1, param2 })
-    });
-
-    const data = await response.json();
-    return data;
-}
-```
-
-### 修改虚拟形象配置
-
-**步骤**：
-
-1. **编辑 `config/frontend.config.js`**
-```javascript
-avatars: {
-    '新角色': {
-        emoji: '😊',
-        name: '新角色',
-        status: '在线',
-        personality: '性格描述',
-        gradient: 'linear-gradient(135deg, #color1, #color2)'
-    }
-}
-```
-
-2. **重新生成配置**
-```bash
-npm run generate-config
-```
-
-3. **刷新浏览器**
 
 ---
 

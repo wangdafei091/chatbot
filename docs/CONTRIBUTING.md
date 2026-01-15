@@ -10,10 +10,12 @@
 - [快速理解项目](#快速理解项目)
 - [开发前必读](#开发前必读)
 - [编码规范](#编码规范)
+- [常用开发命令](#常用开发命令)
 - [常见任务指南](#常见任务指南)
 - [AI编码助手提示](#ai编码助手提示)
 - [常见陷阱](#常见陷阱)
-
+- [检查清单](#检查清单)
+- [相关文档](#相关文档)
 ---
 
 ## 快速理解项目
@@ -216,7 +218,19 @@ app.listen(PORT, ...);
 ```
 
 ---
+## 常用开发命令
 
+```bash
+# 启动开发服务器（自动生成配置）
+npm start
+
+# 启动并监听文件变化自动重载
+npm run dev
+
+# 仅重新生成前端配置
+npm run generate-config
+```
+---
 ## 常见任务指南
 
 ### 任务1：添加新的AI模型
@@ -400,35 +414,16 @@ data: {"type":"done"}
 - 数据不显示：检查 `ReadableStream` 解析
 - CORS错误：检查后端CORS配置
 
+### 任务6：修改前端行为
+
+所有前端代码都在 `public/index.html` 中：
+- **样式**：`<style>` 部分（CSS 变量用于主题）
+- **逻辑**：`<script>` 部分（无需构建步骤）
+- **配置**：从 `window.CONFIG` 加载（从 `config/frontend.config.js` 生成）
+
 ---
 
 ## AI编码助手提示
-
-### 给Claude/GitHub Copilot的提示
-
-**项目上下文**：
-```
-这是一个轻量级AI聊天机器人项目（非企业级应用）。
-
-核心特征：
-- 单体Express.js应用（不要建议微服务）
-- 无数据库（使用localStorage）
-- 流式响应使用SSE（不要建议WebSocket）
-- 前端使用原生JavaScript（不要建议框架）
-
-技术栈选择理由：详见 docs/ARCHITECTURE.md
-
-开发约束：
-- 不要引入重型框架（Vue、React、NestJS）
-- 不要添加数据库（MongoDB、PostgreSQL）
-- 不要重写SSE为WebSocket
-- public/config.js 是自动生成的，不要手动编辑
-
-相关文档：
-- docs/ARCHITECTURE.md - 架构设计
-- docs/CONTRIBUTING.md - 本文档
-- docs/SETUP.md - 搭建指南
-```
 
 ### 常见问题回复模板
 
