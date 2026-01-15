@@ -421,6 +421,108 @@ data: {"type":"done"}
 - **逻辑**：`<script>` 部分（无需构建步骤）
 - **配置**：从 `window.CONFIG` 加载（从 `config/frontend.config.js` 生成）
 
+### 任务7：开发新工具（Function Calling）
+
+**前提**：已阅读 [Function Calling 框架设计](../design/function-calling-framework.md)
+
+**工具开发流程**：
+
+#### 步骤1：定义工具
+
+在 `tools/` 目录创建或扩展工具文件：
+
+```javascript
+// tools/text-tools.js
+
+// 工具定义（发送给 AI）
+const summarizeArticleDefinition = {
+  type: 'function',
+  function: {
+    name: 'summarizeArticle',
+    description: '总结文章的关键信息，提取主要观点',
+    parameters: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description: '文章内容'
+        }
+      },
+      required: ['content']
+    }
+  }
+}
+
+// 工具实现（服务器端执行）
+const summarizeArticleHandler = async (params) => {
+  const { content } = params
+
+  // 实际业务逻辑
+  // 可以调用 AI API 进行总结
+  const summary = await callAIForSummary(content)
+
+  return {
+    summary: summary,
+    wordCount: content.length
+  }
+}
+
+module.exports = {
+  name: 'summarizeArticle',
+  definition: summarizeArticleDefinition,
+  handler: summarizeArticleHandler
+}
+```
+
+#### 步骤2：注册工具
+
+在 `tools/index.js` 中导出工具：
+
+```javascript
+const summarizeArticle = require('./text-tools')
+
+module.exports = [
+  summarizeArticle,
+  // 其他工具...
+]
+```
+
+#### 步骤3：服务器自动注册
+
+在 `server.js` 中自动注册：
+
+```javascript
+const tools = require('./tools')
+
+tools.forEach(tool => {
+  toolRegistry.registerTool(tool.name, tool.definition, tool.handler)
+})
+```
+
+#### 工具开发规范
+
+| 规范 | 说明 | 示例 |
+|------|------|------|
+| **命名** | 使用 camelCase | `summarizeArticle` |
+| **描述** | 清晰说明功能 | "总结文章的关键信息" |
+| **参数** | 明确类型和描述 | `{ type: 'string', description: '...' }` |
+| **错误处理** | 捕获异常并返回 | `try { ... } catch { return { error: '...' } }` |
+| **返回格式** | JSON 对象 | `{ result: '...' }` |
+
+#### 工具测试
+
+```javascript
+// 测试工具调用
+curl -X POST http://localhost:3000/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "帮我把这篇文章总结一下：[内容]",
+    "provider": "glm"
+  }'
+
+// 期望：AI 自动识别意图 → 调用 summarizeArticle → 返回总结
+```
+
 ---
 
 ## AI编码助手提示
