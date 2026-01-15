@@ -2,7 +2,7 @@
 
 > 一个温和、清爽的 AI 聊天机器人，采用柔和粉彩设计，集成真实 AI 模型（GLM、DeepSeek），支持可配置的虚拟形象。
 
-![Version](https://img.shields.io/badge/version-2.0.0-success)
+![Version](https://img.shields.io/badge/version-2.1.0-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![HTML5](https://img.shields.io/badge/html5-E34F26?logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/css3-1572B6?logo=css3&logoColor=white)
@@ -21,6 +21,10 @@
 - **智能对话** - 真实 AI 响应，支持多轮对话
 - **上下文记忆** - 自动保存对话历史
 - **模型切换** - 灵活切换不同 AI 提供商
+- **Function Calling** ✨ - 工具调用框架，支持智能任务处理（v2.1 新增）
+  - 文章总结工具
+  - 关键信息提取工具
+  - 智能参数引导
 
 ### 🎨 视觉设计
 - **柔和粉彩配色** - 薄荷绿、桃色、淡紫的温馨组合
@@ -37,6 +41,13 @@
 ### 💬 交互体验
 - **流式响应** - 实时打字机效果，像真人一样逐字显示 ✨
 - **智能输入框** - 自动高度调整、实时验证
+- **快速开始** ✨ - 一键体验常用功能（v2.1 新增）
+  - 📝 帮我总结一篇文章
+  - 📊 提取文章关键信息
+  - 💡 给我5个创意点子
+- **用户上下文** ✨ - 个性化体验（v2.1 新增）
+  - 自动记住使用偏好
+  - 智能推荐常用功能
 - **打字指示器** - 自然的节奏动画
 - **消息气泡** - 清晰的视觉层次
 - **Emoji 支持** - 跨平台兼容的 emoji 渲染

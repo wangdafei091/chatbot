@@ -396,9 +396,9 @@ Axios stream → GLM API（SSE 格式）
 
 ## Function Calling 框架
 
-> **版本**：v2.1.0（规划中）
+> **版本**：v2.1.0（已完成 60%）✨
 > **设计文档**：[docs/design/function-calling-framework.md](design/function-calling-framework.md)
-> **状态**：设计阶段，待审核
+> **状态**：🚧 进行中（基础框架、智能引导、用户上下文已完成）
 
 ### 概述
 
@@ -408,10 +408,13 @@ Function Calling 框架是项目的重大架构升级，让 AI 能够根据用�
 
 | 组件 | 职责 | 位置 |
 |------|------|------|
-| **ToolRegistry** | 工具注册、执行、验证 | `server.js` |
-| **ToolExecutor** | 意图识别、工具调度、结果整合 | `server.js` |
-| **AIAdapter** | 支持 Function Calling 参数 | `server.js` |
-| **Tools** | 具体工具实现 | `tools/` 目录 |
+| **ToolRegistry** | 工具注册表 | `tools/index.js` ✅ |
+| **ToolExecutor** | 工具执行器 | `tools/index.js` ✅ |
+| **ParamValidator** | 参数验证和智能引导 | `tools/utils/param-validator.js` ✅ |
+| **ErrorHandler** | 错误处理 | `tools/utils/error-handler.js` ✅ |
+| **TextTools** | 文本处理工具 | `tools/text-tools.js` ✅ |
+| **UserContext** | 用户上下文（客户端） | `public/app.js` ✅ |
+| **AIAdapter** | 支持 Function Calling 参数 | `server.js` ✅ |
 
 ### 工作流程
 
@@ -438,9 +441,9 @@ AI 生成自然语言回复
 
 | 类型 | 示例 | 状态 | 依赖 |
 |------|------|------|------|
-| **文本处理** | 文章总结、关键信息提取 | 📋 第一阶段 | AI 原生 |
-| **信息查询** | 天气、价格、航班 | 📋 第二阶段 | 外部 API |
-| **任务管理** | 待办事项、统计看板 | 📋 第三阶段 | 数据存储 |
+| **文本处理** | 文章总结、关键信息提取 | ✅ 已完成 (v2.1.0) | AI 原生 |
+| **信息查询** | 天气、价格、航班 | 📋 待调研 | 外部 API |
+| **任务管理** | 待办事项、统计看板 | 📋 延后 | 数据存储 |
 | **文件处理** | 图片去水印 | 📋 后续 | 图片库 |
 
 ### 技术选型

@@ -15,6 +15,132 @@ const API_TIMEOUT = window.CONFIG?.api?.timeout || 30000;
 let conversationHistory = [];
 let currentProvider = window.CONFIG?.features?.defaultProvider || 'glm';
 
+// ===== 用户上下文系统（阶段 2.5）=====
+/**
+ * 用户上下文管理
+ * 使用 localStorage 存储用户偏好和使用统计
+ */
+const UserContext = {
+// 存储键名
+STORAGE_KEY: 'chatbot_user_context',
+
+/**
+ * 默认上下文数据
+ */
+defaultContext: {
+    // 快速开始功能使用统计
+    quickStartUsage: {
+        summarize: 0,
+        extract: 0,
+        ideas: 0
+    },
+    // 工具使用统计
+    toolUsage: {
+        summarizeArticle: 0,
+        extractKeyInfo: 0
+    },
+    // 首次访问时间
+    firstVisit: null,
+    // 最后访问时间
+    lastVisit: null,
+    // 总对话次数
+    totalConversations: 0,
+    // 偏好的功能（按使用次数排序）
+    preferredFeatures: []
+},
+
+/**
+ * 加载用户上下文
+ */
+load() {
+    try {
+        const data = localStorage.getItem(this.STORAGE_KEY);
+        if (data) {
+            return { ...this.defaultContext, ...JSON.parse(data) };
+        }
+    } catch (error) {
+        console.error('加载用户上下文失败:', error);
+    }
+    return { ...this.defaultContext };
+},
+
+/**
+ * 保存用户上下文
+ */
+save(context) {
+    try {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(context));
+    } catch (error) {
+        console.error('保存用户上下文失败:', error);
+    }
+},
+
+/**
+ * 记录快速开始使用
+ */
+recordQuickStart(type) {
+    const context = this.load();
+    context.quickStartUsage[type] = (context.quickStartUsage[type] || 0) + 1;
+    context.lastVisit = new Date().toISOString();
+    this.save(context);
+    this.updatePreferredFeatures(context);
+},
+
+/**
+ * 记录工具使用
+ */
+recordToolUsage(toolName) {
+    const context = this.load();
+    context.toolUsage[toolName] = (context.toolUsage[toolName] || 0) + 1;
+    context.lastVisit = new Date().toISOString();
+    this.save(context);
+    this.updatePreferredFeatures(context);
+},
+
+/**
+ * 更新偏好功能排序
+ */
+updatePreferredFeatures(context) {
+    // 合并快速开始和工具使用统计
+    const allUsage = {
+        ...context.quickStartUsage,
+        ...context.toolUsage
+    };
+
+    // 按使用次数排序
+    context.preferredFeatures = Object.entries(allUsage)
+        .sort(([, a], [, b]) => b - a)
+        .map(([feature]) => feature);
+
+    this.save(context);
+},
+
+/**
+ * 获取推荐的快速开始顺序
+ */
+getRecommendedOrder() {
+    const context = this.load();
+    return context.preferredFeatures.length > 0
+        ? context.preferredFeatures
+        : ['summarize', 'extract', 'ideas']; // 默认顺序
+},
+
+/**
+ * 初始化上下文（首次访问）
+ */
+initialize() {
+    const context = this.load();
+    if (!context.firstVisit) {
+        context.firstVisit = new Date().toISOString();
+        this.save(context);
+        console.log('✓ 用户上下文已初始化');
+    }
+}
+};
+
+// 初始化用户上下文
+UserContext.initialize();
+
 // 虚拟形象数据库（从配置读取）
 const avatarDatabase = window.CONFIG?.avatars || {
 '小樱': {
@@ -145,6 +271,10 @@ if (prompt) {
     updateSendButton();
     // 不自动发送，让用户可以先修改示例文本
     document.getElementById('messageInput').focus();
+
+    // 记录使用情况（用户上下文）
+    UserContext.recordQuickStart(type);
+    console.log(`✓ 记录快速开始使用: ${type}`);
 }
 }
 

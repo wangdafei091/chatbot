@@ -36,6 +36,9 @@ const { toolRegistry, toolExecutor } = require('./tools');
 const app = express();
 const PORT = config.server.port;
 
+// 导入参数验证工具
+const { validateParams, analyzeIntent } = require('./tools/utils/param-validator');
+
 // ==================== 中间件配置 ====================
 
 // CORS 配置（白名单）
@@ -664,10 +667,80 @@ app.post('/api/chat/tools', async (req, res) => {
     try {
         console.log('[Tools Chat] 收到消息:', message);
 
-        // TODO: 实现智能工具调用检测
-        // 当前版本：直接调用 AI，不进行工具调用
-        // 后续版本：基于消息内容判断是否需要调用工具
+        // 1. 分析用户意图
+        const availableTools = toolRegistry.getAllToolDefinitions();
+        const intent = analyzeIntent(message, availableTools);
 
+        console.log('[Tools Chat] 意图分析:', intent);
+
+        // 2. 如果识别到需要工具调用
+        if (intent.needTool && intent.toolName) {
+            console.log(`[Tools Chat] 识别到工具调用意图: ${intent.toolName}`);
+
+            const tool = toolRegistry.getTool(intent.toolName);
+            if (tool) {
+                // 3. 验证参数完整性
+                const validation = validateParams(tool.definition, message);
+
+                if (!validation.isComplete) {
+                    // 参数不完整，返回引导提示
+                    console.log('[Tools Chat] 参数不完整，生成引导提示');
+                    console.log('[Tools Chat] 缺失参数:', validation.missingParams.map(p => p.name));
+
+                    return res.json({
+                        reply: validation.prompt,
+                        model: 'smart-guidance',
+                        provider: provider,
+                        toolsUsed: false,
+                        needMoreInfo: true,
+                        missingParams: validation.missingParams.map(p => ({
+                            name: p.name,
+                            description: p.description
+                        })),
+                        guidance: true
+                    });
+                }
+
+                // 参数完整，执行工具
+                console.log('[Tools Chat] 参数完整，执行工具');
+                console.log('[Tools Chat] 提取的参数:', validation.foundParams);
+
+                try {
+                    const toolResult = await toolExecutor.executeTool(
+                        intent.toolName,
+                        validation.foundParams
+                    );
+
+                    // 将工具结果整合到 AI 回复中
+                    const aiPrompt = `工具执行结果：${JSON.stringify(toolResult.result)}\n\n请基于这个结果，用友好的语言回复用户。`;
+                    const aiResult = await AIAdapter.chat(provider, aiPrompt, []);
+
+                    return res.json({
+                        reply: aiResult.content,
+                        model: aiResult.model,
+                        usage: aiResult.usage,
+                        provider: provider,
+                        toolsUsed: true,
+                        toolResults: [toolResult]
+                    });
+
+                } catch (toolError) {
+                    console.error('[Tools Chat] 工具执行失败:', toolError);
+
+                    // 工具执行失败，返回错误提示
+                    return res.json({
+                        reply: `抱歉，工具执行遇到问题：${toolError.message}`,
+                        model: 'error',
+                        provider: provider,
+                        toolsUsed: false,
+                        error: toolError.message
+                    });
+                }
+            }
+        }
+
+        // 4. 没有识别到工具调用意图，使用普通 AI 对话
+        console.log('[Tools Chat] 未识别到工具调用，使用普通对话');
         const result = await AIAdapter.chat(provider, message, history);
 
         res.json({
