@@ -1,0 +1,806 @@
+:root {
+/* 柔和粉彩色系 - 优化版 */
+--bg-primary: #FDF6F0;
+--bg-secondary: #FEF9F5;
+--bg-tertiary: #F5F3FF;
+
+/* ✅ 优化1: 提升文字对比度至 WCAG AA 标准 */
+--text-primary: #3E3848;
+--text-secondary: #5E5670;  /* 从 #7A7180 加深，对比度 5.2:1 */
+--text-tertiary: #9A8FA0;  /* 从 #A89FA8 加深 */
+
+/* 强调色 - 柔和粉彩 */
+--accent-mint: #C5E8D0;
+--accent-peach: #FFD4C2;
+--accent-lavender: #E2D4F0;
+--accent-primary: #D4B8E8;
+
+/* ✅ 优化2: 更丰富的渐变层次 */
+--gradient-gentle: linear-gradient(135deg,
+#C5E8D0 0%,
+#DDE8D8 25%,
+#FFE5D8 50%,
+#FFD4C2 75%,
+#E8C8D8 100%
+);
+--gradient-subtle: linear-gradient(90deg, rgba(197, 232, 208, 0.3), rgba(255, 212, 194, 0.3));
+
+/* ✅ 优化3: 加强气泡边框 */
+--bubble-user: #E8D5E0;
+--bubble-ai: #FFFFFF;
+--bubble-border: rgba(212, 184, 232, 0.4);  /* 从 0.2 加深到 0.4 */
+--bubble-border-strong: rgba(212, 184, 232, 0.5);
+
+/* ✅ 优化4: 多层阴影增加深度感 */
+--shadow-soft:
+0 1px 2px rgba(74, 67, 88, 0.08),
+0 2px 8px rgba(74, 67, 88, 0.06);
+--shadow-medium:
+0 2px 4px rgba(74, 67, 88, 0.08),
+0 4px 16px rgba(74, 67, 88, 0.06),
+0 8px 32px rgba(74, 67, 88, 0.04);
+--shadow-elevated:
+0 4px 8px rgba(74, 67, 88, 0.08),
+0 8px 24px rgba(74, 67, 88, 0.06),
+0 16px 48px rgba(74, 67, 88, 0.04),
+0 32px 64px rgba(74, 67, 88, 0.02);
+--avatar-glow:
+0 8px 24px rgba(212, 184, 232, 0.15),
+0 0 0 1px rgba(212, 184, 232, 0.2);
+
+/* 状态颜色 - 更鲜艳 */
+--status-online: #4CAF50;  /* 从 #68D491 改为更鲜艳的绿色 */
+
+/* 间距 */
+--spacing-xs: 4px;
+--spacing-sm: 8px;
+--spacing-md: 12px;
+--spacing-lg: 20px;
+--spacing-xl: 32px;
+--spacing-2xl: 48px;
+
+/* 字体 - 添加 emoji 支持 */
+--font-main: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+--font-emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', serif;  /* emoji 专用字体 */
+--font-hand: 'Caveat', cursive;
+}
+
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+
+html, body {
+height: 100%;
+overflow: hidden;
+}
+
+body {
+font-family: var(--font-main);
+background: var(--bg-primary);
+color: var(--text-primary);
+font-weight: 500;
+font-size: 15px;
+line-height: 1.7;
+letter-spacing: 0.01em;
+-webkit-font-smoothing: antialiased;
+position: relative;
+}
+
+/* 为所有 emoji 元素添加专用字体 */
+.emoji {
+font-family: var(--font-emoji);
+font-style: normal;
+}
+
+/* ===== 顶部虚拟形象栏 - 优化 ===== */
+.top-bar {
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+height: 64px;
+background: rgba(253, 246, 240, 0.98);  /* 从 0.95 提高 */
+backdrop-filter: blur(12px);
+-webkit-backdrop-filter: blur(12px);
+border-bottom: 1.5px solid var(--bubble-border);  /* 从 1px 加深 */
+box-shadow: 0 2px 8px rgba(74, 67, 88, 0.04);  /* ✅ 添加微妙阴影 */
+display: flex;
+align-items: center;
+padding: 0 var(--spacing-lg);
+z-index: 100;
+transition: all 0.3s ease;
+}
+
+.avatar-container {
+display: flex;
+align-items: center;
+gap: var(--spacing-sm);
+cursor: pointer;
+transition: all 0.3s ease;
+padding: var(--spacing-sm);
+border-radius: 12px;
+position: relative;
+}
+
+.avatar-container:hover {
+background: rgba(212, 184, 232, 0.1);
+}
+
+/* ✅ 添加展开提示 */
+.avatar-container::after {
+content: '▼';
+font-size: 8px;
+color: var(--text-tertiary);
+margin-left: 4px;
+transition: transform 0.3s ease;
+}
+
+.avatar-selector.active ~ .top-bar .avatar-container::after,
+.avatar-container.expanded::after {
+transform: rotate(180deg);
+}
+
+/* 顶部小头像 */
+.avatar-small-top {
+width: 40px;
+height: 40px;
+background: var(--gradient-gentle);
+border-radius: 12px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 20px;
+font-family: var(--font-emoji);  /* 确保使用 emoji 字体 */
+box-shadow: var(--shadow-soft);
+position: relative;
+overflow: hidden;
+transition: all 0.3s ease;
+}
+
+.avatar-small-top .emoji {
+font-family: var(--font-emoji);
+font-style: normal;
+}
+
+/* 状态指示器 - 更鲜艳 */
+.status-indicator {
+position: absolute;
+bottom: -2px;
+right: -2px;
+width: 12px;
+height: 12px;
+background: var(--status-online);
+border: 2px solid var(--bg-primary);
+border-radius: 50%;
+animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+0%, 100% {
+transform: scale(1);
+opacity: 1;
+}
+50% {
+transform: scale(1.15);
+opacity: 0.85;
+}
+}
+
+/* 虚拟形象信息 - ✅ 优化层次 */
+.avatar-info {
+display: flex;
+flex-direction: column;
+}
+
+.avatar-name {
+font-size: 16px;  /* 从 15px 增大 */
+font-weight: 700;
+color: var(--text-primary);
+letter-spacing: -0.02em;  /* 从 -0.01em 增强 */
+line-height: 1.2;
+}
+
+.avatar-status {
+font-size: 11px;  /* 从 12px 减小 */
+color: var(--text-tertiary);
+font-weight: 600;  /* 从 500 增加 */
+text-transform: uppercase;  /* ✅ 大写更正式 */
+letter-spacing: 0.05em;  /* ✅ 字间距更宽 */
+}
+
+/* 头像选择器 */
+.avatar-selector {
+display: none;
+position: fixed;
+top: 70px;
+left: var(--spacing-lg);
+background: var(--bg-secondary);
+border: 1.5px solid var(--bubble-border-strong);  /* ✅ 加深边框 */
+border-radius: 16px;
+padding: var(--spacing-md);
+box-shadow: var(--shadow-elevated);
+z-index: 101;
+min-width: 200px;
+animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+from {
+opacity: 0;
+transform: translateY(-10px);
+}
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+.avatar-selector.active {
+display: block;
+}
+
+.avatar-option {
+display: flex;
+align-items: center;
+gap: var(--spacing-sm);
+padding: var(--spacing-sm) var(--spacing-md);
+border-radius: 8px;
+cursor: pointer;
+transition: all 0.2s ease;
+}
+
+.avatar-option:hover {
+background: var(--bg-tertiary);
+}
+
+.avatar-option img,
+.avatar-option .avatar-preview {
+width: 32px;
+height: 32px;
+border-radius: 8px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 16px;
+}
+
+.avatar-option span {
+font-size: 14px;
+font-weight: 600;
+color: var(--text-primary);
+}
+
+/* ===== 应用容器 ===== */
+.app-container {
+display: flex;
+flex-direction: column;
+height: 100%;
+max-width: 480px;
+margin: 0 auto;
+position: relative;
+background: transparent;
+padding-top: 64px;
+}
+
+/* 消息容器 */
+.messages-container {
+flex: 1;
+overflow-y: auto;
+overflow-x: visible;  /* 改为 visible，避免横向截断 */
+padding: var(--spacing-lg);
+padding-bottom: var(--spacing-2xl);
+display: flex;
+flex-direction: column;
+scroll-behavior: smooth;
+-webkit-overflow-scrolling: touch;
+position: relative;
+}
+
+/* ✅ 优化10: 空状态装饰 */
+.empty-state-decoration {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 0;
+opacity: 0.15;
+}
+
+.floating-icon {
+position: absolute;
+font-size: 24px;
+animation: floatIcon 6s ease-in-out infinite;
+}
+
+@keyframes floatIcon {
+0%, 100% { transform: translateY(0) rotate(0deg); }
+50% { transform: translateY(-20px) rotate(10deg); }
+}
+
+.floating-icon .emoji {
+font-family: var(--font-emoji);
+font-style: normal;
+}
+
+/* 机器人欢迎界面 */
+.robot-welcome {
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: var(--spacing-xl) 0;
+animation: fadeInUp 0.8s ease-out;
+position: relative;
+z-index: 1;
+}
+
+@keyframes fadeInUp {
+from {
+opacity: 0;
+transform: translateY(20px);
+}
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+/* 欢迎界面的虚拟形象容器 */
+.welcome-avatar-container {
+display: flex;
+align-items: flex-start;
+gap: var(--spacing-md);
+margin-bottom: var(--spacing-lg);
+width: 100%;
+}
+
+/* ✅ 优化5: 大型虚拟形象 - 增强视觉焦点 */
+.robot-avatar-large {
+width: 100px;
+height: 100px;
+background: var(--gradient-gentle);
+border-radius: 24px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 48px;
+position: relative;
+flex-shrink: 0;
+overflow: hidden;
+/* ✅ 呼吸光晕效果 */
+box-shadow: var(--avatar-glow);
+animation: gentleGlow 3s ease-in-out infinite;
+}
+
+@keyframes gentleGlow {
+0%, 100% {
+box-shadow:
+0 8px 24px rgba(212, 184, 232, 0.15),
+0 0 0 1px rgba(212, 184, 232, 0.2);
+}
+50% {
+box-shadow:
+0 8px 32px rgba(212, 184, 232, 0.2),
+0 0 0 1px rgba(212, 184, 232, 0.3),
+0 0 80px rgba(212, 184, 232, 0.15);
+}
+}
+
+/* 3D模型/Lottie占位容器 */
+.avatar-3d-container {
+width: 100%;
+height: 100%;
+display: flex;
+align-items: center;
+justify-content: center;
+background: var(--gradient-gentle);
+position: relative;
+}
+
+/* 未来放置3D模型的容器 */
+.avatar-3d-model {
+width: 100%;
+height: 100%;
+object-fit: cover;
+display: none;
+}
+
+/* ✅ 优化8: 虚拟形象眨眼动画 */
+.avatar-placeholder {
+font-size: 48px;
+font-family: var(--font-emoji);  /* 确保使用 emoji 字体 */
+animation: float 3s ease-in-out infinite,
+blink 4s ease-in-out infinite;
+}
+
+@keyframes float {
+0%, 100% {
+transform: translateY(0);
+}
+50% {
+transform: translateY(-8px);
+}
+}
+
+@keyframes blink {
+0%, 48%, 52%, 100% { transform: scaleY(1); }
+50% { transform: scaleY(0.1); }
+}
+
+/* 欢迎文字 - ✅ 优化排版 */
+.welcome-text {
+flex: 1;
+padding-top: var(--spacing-xs);
+}
+
+.welcome-title {
+font-size: 28px;  /* 从 26px 增大 */
+font-weight: 800;  /* 从 700 增加 */
+line-height: 1.2;
+letter-spacing: -0.03em;  /* 从 -0.01em 增强 */
+margin-bottom: var(--spacing-sm);
+/* ✅ 渐变文字效果 */
+background: linear-gradient(135deg, #3E3848 0%, #5E5670 100%);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+.welcome-subtitle {
+font-size: 15px;
+line-height: 1.7;
+color: var(--text-secondary);
+margin-bottom: var(--spacing-md);
+font-weight: 500;
+position: relative;
+padding-left: 12px;  /* ✅ 为装饰条留空间 */
+max-width: 280px;
+}
+
+/* ✅ 添加装饰性竖线 */
+.welcome-subtitle::before {
+content: '';
+position: absolute;
+left: 0;
+top: 4px;
+bottom: 4px;
+width: 3px;
+background: var(--gradient-gentle);
+border-radius: 2px;
+}
+
+/* ✅ 优化6: 提示词按钮 - 降低视觉权重 */
+.prompt-suggestions {
+display: flex;
+flex-direction: column;
+gap: var(--spacing-sm);
+width: calc(100% - 116px);  /* 减去左边距，避免超出容器 */
+margin-left: 116px;
+}
+
+.prompt-button {
+padding: 10px 16px;  /* 从 12px 20px 减小 */
+background: rgba(255, 255, 255, 0.9);
+border: 1px solid var(--bubble-border);  /* 从 1.5px 减小 */
+border-radius: 16px;  /* 从 18px 减小 */
+font-family: var(--font-main);
+font-size: 13px;  /* 从 14px 减小 */
+color: var(--text-secondary);  /* ✅ 使用次要颜色 */
+cursor: pointer;
+transition: all 0.3s ease;
+text-align: left;
+backdrop-filter: blur(8px);
+-webkit-backdrop-filter: blur(8px);
+box-shadow: var(--shadow-soft);
+-webkit-tap-highlight-color: transparent;
+font-weight: 500;  /* 从 600 降低 */
+width: 100%;  /* 确保按钮宽度自适应 */
+box-sizing: border-box;  /* 包含 padding 在宽度计算中 */
+word-wrap: break-word;  /* 允许长文本换行 */
+overflow-wrap: break-word;  /* 兼容性更好的换行 */
+}
+
+.prompt-button:hover {
+border-color: var(--accent-primary);
+transform: translateY(-1px);  /* 从 -2px 减小 */
+box-shadow: var(--shadow-medium);
+font-weight: 600;  /* ✅ hover 时加粗 */
+color: var(--text-primary);
+}
+
+.prompt-button:active {
+transform: translateY(0);
+}
+
+/* ✅ 优化7: 消息气泡 - 增强可读性 */
+.message {
+display: flex;
+gap: var(--spacing-sm);
+max-width: 86%;
+margin-bottom: var(--spacing-md);
+animation: messageIn 0.4s ease-out;
+}
+
+@keyframes messageIn {
+from {
+opacity: 0;
+transform: translateY(10px);
+}
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+.message.user {
+align-self: flex-end;
+flex-direction: row-reverse;
+}
+
+.message.ai {
+align-self: flex-start;
+}
+
+.avatar-small {
+width: 32px;
+height: 32px;
+border-radius: 12px;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-shrink: 0;
+font-size: 16px;
+font-family: var(--font-emoji);  /* 确保使用 emoji 字体 */
+box-shadow: var(--shadow-soft);
+}
+
+.avatar-small .emoji {
+font-family: var(--font-emoji);
+font-style: normal;
+}
+
+.message.ai .avatar-small {
+background: var(--gradient-gentle);
+}
+
+.message.user .avatar-small {
+background: var(--bubble-user);
+}
+
+.bubble {
+padding: var(--spacing-md) var(--spacing-lg);
+border-radius: 16px;  /* 从 20px 减小，更平衡 */
+font-size: 15px;
+line-height: 1.7;
+word-wrap: break-word;
+position: relative;
+}
+
+.message.ai .bubble {
+background: var(--bubble-ai);
+color: var(--text-primary);
+border: 1.5px solid var(--bubble-border-strong);  /* ✅ 加深边框 */
+border-bottom-left-radius: 6px;
+/* ✅ 双层阴影增加深度 */
+box-shadow:
+0 2px 8px rgba(74, 67, 88, 0.06),
+0 8px 24px rgba(74, 67, 88, 0.04);
+}
+
+.message.user .bubble {
+/* ✅ 微妙渐变 */
+background: linear-gradient(135deg, #E8D5E0 0%, #DCC8E0 100%);
+border-bottom-right-radius: 6px;
+/* ✅ 双层阴影 */
+box-shadow:
+0 4px 12px rgba(74, 67, 88, 0.08),
+0 8px 28px rgba(74, 67, 88, 0.06);
+}
+
+.message-time {
+font-size: 11px;
+margin-top: var(--spacing-xs);
+opacity: 0.6;
+font-weight: 600;
+font-family: var(--font-main);
+}
+
+.message.ai .message-time {
+color: var(--text-tertiary);
+padding-left: var(--spacing-xs);
+}
+
+.message.user .message-time {
+color: var(--text-secondary);
+padding-right: var(--spacing-xs);
+text-align: right;
+}
+
+/* ✅ 优化9: 打字指示器 - 更自然的节奏 */
+.typing-indicator {
+display: flex;
+gap: var(--spacing-sm);
+}
+
+.typing-dots {
+display: flex;
+gap: 6px;
+padding: var(--spacing-md) var(--spacing-lg);
+background: var(--bubble-ai);
+border: 1.5px solid var(--bubble-border-strong);
+border-radius: 16px;
+border-bottom-left-radius: 6px;
+box-shadow: var(--shadow-soft);
+}
+
+.dot {
+width: 7px;
+height: 7px;
+background: var(--gradient-gentle);
+border-radius: 50%;
+animation: typingBounce 1.4s ease-in-out infinite;
+}
+
+/* ✅ 不同时长，更自然的节奏 */
+.dot:nth-child(1) {
+animation-delay: 0s;
+animation-duration: 1.3s;
+}
+.dot:nth-child(2) {
+animation-delay: 0.15s;  /* 从 0.2s 缩短 */
+animation-duration: 1.5s;
+}
+.dot:nth-child(3) {
+animation-delay: 0.3s;  /* 从 0.4s 缩短 */
+animation-duration: 1.4s;
+}
+
+@keyframes typingBounce {
+0%, 60%, 100% {
+transform: translateY(0) scale(1);
+opacity: 0.6;
+}
+30% {
+transform: translateY(-8px) scale(1.1);  /* ✅ 添加缩放 */
+opacity: 1;
+}
+}
+
+/* 输入区域 - ✅ 优化交互反馈 */
+.input-area {
+padding: var(--spacing-md);
+padding-bottom: max(var(--spacing-md), env(safe-area-inset-bottom));
+background: rgba(254, 249, 245, 0.98);  /* 从 0.95 提高 */
+backdrop-filter: blur(12px);
+-webkit-backdrop-filter: blur(12px);
+border-top: 1.5px solid var(--bubble-border);  /* 从 1px 加深 */
+display: flex;
+gap: var(--spacing-sm);
+align-items: flex-end;
+}
+
+.input-wrapper {
+flex: 1;
+position: relative;
+background: rgba(255, 255, 255, 0.9);
+border-radius: 20px;
+border: 1.5px solid var(--bubble-border);
+transition: all 0.3s ease;
+backdrop-filter: blur(8px);
+-webkit-backdrop-filter: blur(8px);
+}
+
+/* ✅ 增强外发光 */
+.input-wrapper:focus-within {
+border-color: var(--accent-primary);
+box-shadow:
+0 0 0 3px rgba(212, 184, 232, 0.25),  /* 从 0.15 增强 */
+0 4px 12px rgba(212, 184, 232, 0.15);  /* ✅ 添加额外阴影 */
+transform: translateY(-1px);  /* ✅ 微妙上移 */
+}
+
+#messageInput {
+width: 100%;
+padding: var(--spacing-md) var(--spacing-lg);
+border: none;
+background: transparent;
+font-family: var(--font-main);
+font-size: 15px;
+color: var(--text-primary);
+outline: none;
+resize: none;
+max-height: 100px;
+line-height: 1.6;
+font-weight: 500;
+}
+
+/* ✅ 加深 placeholder 颜色 */
+#messageInput::placeholder {
+color: #9A8FA0;  /* 从 #A89FA8 加深 */
+}
+
+.send-button {
+width: 48px;
+height: 48px;
+border-radius: 20px;
+background: var(--gradient-gentle);
+border: none;
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+transition: all 0.3s ease;
+box-shadow: var(--shadow-soft);
+flex-shrink: 0;
+-webkit-tap-highlight-color: transparent;
+}
+
+.send-button:active:not(:disabled) {
+transform: scale(0.96);
+}
+
+/* ✅ 改进禁用状态 */
+.send-button:disabled {
+opacity: 0.3;
+background: var(--bg-tertiary);  /* ✅ 改变背景色 */
+cursor: not-allowed;
+transform: none;
+box-shadow: none;  /* ✅ 移除阴影 */
+}
+
+.send-button svg {
+width: 20px;
+height: 20px;
+fill: none;
+stroke: var(--text-primary);
+stroke-width: 2;
+stroke-linecap: round;
+stroke-linejoin: round;
+}
+
+/* 滚动条 */
+.messages-container::-webkit-scrollbar {
+width: 4px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+background: transparent;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+background: rgba(168, 159, 168, 0.3);
+border-radius: 4px;
+}
+
+/* 响应式调整 */
+@media (max-width: 420px) {
+.prompt-suggestions {
+margin-left: 0;  /* 在小屏幕上移除左边距 */
+width: 100%;  /* 恢复100%宽度 */
+}
+}
+
+@media (max-width: 380px) {
+.prompt-suggestions {
+margin-left: 0;
+width: 100%;  /* 明确设置为100% */
+}
+
+.welcome-avatar-container {
+flex-direction: column;
+align-items: center;
+text-align: center;
+}
+
+.welcome-text {
+padding-top: 0;
+}
+
+.welcome-subtitle {
+padding-left: 0;
+}
+
+.welcome-subtitle::before {
+display: none;
+}
+}
