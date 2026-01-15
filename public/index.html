@@ -102,16 +102,16 @@ AI Chatbot - 前端界面
                     </div>
                 </div>
 
-                <!-- 提示词按钮 -->
+                <!-- 快速开始按钮（阶段 1 第一版） -->
                 <div class="prompt-suggestions">
-                    <button class="prompt-button" onclick="sendPrompt('介绍一下你自己')">
-                        介绍一下你自己
+                    <button class="prompt-button" onclick="quickStart('summarize')">
+                        📝 帮我总结一篇文章
                     </button>
-                    <button class="prompt-button" onclick="sendPrompt('你能帮我做些什么？')">
-                        你能帮我做些什么？
+                    <button class="prompt-button" onclick="quickStart('extract')">
+                        📊 提取文章关键信息
                     </button>
-                    <button class="prompt-button" onclick="sendPrompt('给我一个创意点子')">
-                        给我一个创意点子
+                    <button class="prompt-button" onclick="quickStart('ideas')">
+                        💡 给我5个创意点子
                     </button>
                 </div>
             </div>

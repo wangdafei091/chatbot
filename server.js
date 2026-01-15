@@ -31,6 +31,7 @@ const cors = require('cors');
 const axios = require('axios');
 const rateLimit = require('express-rate-limit');
 const config = require('./config');
+const { toolRegistry, toolExecutor } = require('./tools');
 
 const app = express();
 const PORT = config.server.port;
@@ -616,6 +617,76 @@ app.get('/api/config', (req, res) => {
             deepseek: !!process.env.DEEPSEEK_API_KEY
         }
     });
+});
+
+// ==================== 工具系统接口 ====================
+
+/**
+ * GET /api/tools - 获取所有已注册的工具
+ */
+app.get('/api/tools', (req, res) => {
+    try {
+        const tools = toolRegistry.getToolNames();
+        const definitions = toolRegistry.getAllToolDefinitions();
+
+        res.json({
+            success: true,
+            count: tools.length,
+            tools: tools,
+            definitions: definitions
+        });
+    } catch (error) {
+        console.error('获取工具列表失败:', error);
+        res.status(500).json({
+            error: '获取工具列表失败',
+            details: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/chat/tools - 带工具调用的聊天接口
+ *
+ * 注意：这是一个简化版本，实际的 Function Calling 需要特定格式的 AI API 支持
+ * 当前实现：检测用户意图，决定是否需要调用工具
+ */
+app.post('/api/chat/tools', async (req, res) => {
+    const { message, history = [], provider = process.env.DEFAULT_MODEL || 'glm' } = req.body;
+
+    // 验证请求
+    if (!message || typeof message !== 'string') {
+        return res.status(400).json({
+            error: '消息内容不能为空',
+            code: 'INVALID_MESSAGE'
+        });
+    }
+
+    try {
+        console.log('[Tools Chat] 收到消息:', message);
+
+        // TODO: 实现智能工具调用检测
+        // 当前版本：直接调用 AI，不进行工具调用
+        // 后续版本：基于消息内容判断是否需要调用工具
+
+        const result = await AIAdapter.chat(provider, message, history);
+
+        res.json({
+            reply: result.content,
+            model: result.model,
+            usage: result.usage,
+            provider: provider,
+            toolsUsed: false,
+            toolResults: []
+        });
+
+    } catch (error) {
+        console.error('[Tools Chat] 错误:', error);
+
+        res.status(500).json({
+            error: error.message || '聊天失败',
+            code: error.code || 'CHAT_ERROR'
+        });
+    }
 });
 
 // ==================== 静态文件服务 ====================

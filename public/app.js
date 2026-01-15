@@ -108,6 +108,46 @@ updateSendButton();
 sendMessage();
 }
 
+/**
+ * 快速开始功能（Aha Moment）
+ * @param {String} type - 快速开始类型
+ */
+function quickStart(type) {
+const quickStartPrompts = {
+    summarize: `请帮我总结下面这篇文章：
+
+[在这里粘贴你的文章内容]
+
+要求：
+1. 提取主要观点（3-5 个要点）
+2. 每个要点用一句话概括
+3. 总长度控制在 200 字以内`,
+    extract: `请从下面的文章中提取关键信息：
+
+[粘贴文章内容]
+
+需要提取的信息类型：
+- 人名
+- 地名
+- 日期
+- 重要数据`,
+    ideas: `给我5个关于[主题]的创意点子，要求：
+1. 创新性强
+2. 可落地
+3. 成本低
+
+请为每个点子说明：创意点 + 实施方式`
+};
+
+const prompt = quickStartPrompts[type];
+if (prompt) {
+    document.getElementById('messageInput').value = prompt;
+    updateSendButton();
+    // 不自动发送，让用户可以先修改示例文本
+    document.getElementById('messageInput').focus();
+}
+}
+
 async function sendMessage() {
 const input = document.getElementById('messageInput');
 const message = input.value.trim();
