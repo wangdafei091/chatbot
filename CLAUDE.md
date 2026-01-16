@@ -144,6 +144,25 @@ npm run generate-config
    - 添加必要注释
    - 不添加不必要的依赖
 
+6. **完成后：同步更新文档** ⚠️ **重要**
+   - 代码和文档**必须同时提交**
+   - 根据代码变更类型，更新对应文档：
+     - 新增/修改 API → 更新 `docs/API.md`
+     - 新功能 → 更新 `docs/README.md`、`docs/PROGRESS.md`、`docs/TESTING.md`
+     - 配置变更 → 更新 `docs/SETUP.md`
+     - Bug 修复 → 更新 `docs/TROUBLESHOOTING.md`（如果是常见问题）
+     - 架构调整 → 更新 `docs/ARCHITECTURE.md`
+     - 发现新陷阱 → 更新 `CLAUDE.md` 的"常见陷阱"部分
+   - **检查清单**：
+     - [ ] 是否新增/修改了 API？→ 更新 API.md
+     - [ ] 是否新增了功能？→ 更新 README.md、PROGRESS.md、TESTING.md
+     - [ ] 是否改变了配置？→ 更新 SETUP.md
+     - [ ] 是否修复了常见问题？→ 更新 TROUBLESHOOTING.md
+     - [ ] 是否改变了架构设计？→ 更新 ARCHITECTURE.md
+     - [ ] 是否发现新的陷阱？→ 更新 CLAUDE.md
+
+**参考**：详见 `docs/DOCUMENTATION_MAINTENANCE.md`
+
 ### 文档管理原则
 
 **避免重复**：
