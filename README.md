@@ -24,6 +24,7 @@
 - **Function Calling** ✨ - 工具调用框架，支持智能任务处理（v2.1 新增）
   - 文章总结工具
   - 关键信息提取工具
+  - 天气查询工具 🌤️（最新）
   - 智能参数引导
 
 ### 🎨 视觉设计
@@ -44,7 +45,7 @@
 - **快速开始** ✨ - 一键体验常用功能（v2.1 新增）
   - 📝 帮我总结一篇文章
   - 📊 提取文章关键信息
-  - 💡 给我5个创意点子
+  - 🌤️ 查询城市天气（最新）
 - **用户上下文** ✨ - 个性化体验（v2.1 新增）
   - 自动记住使用偏好
   - 智能推荐常用功能
@@ -154,10 +155,19 @@ chatbot/
 ├── config/
 │   ├── validators.js          # 配置验证器
 │   └── frontend.config.js     # 前端配置源
+├── tools/                     # 🔧 Function Calling 工具系统（v2.1 新增）
+│   ├── index.js               # 工具注册表 + 执行器
+│   ├── text-tools.js          # 文本处理工具
+│   ├── weather-tools.js       # 天气查询工具 🌤️
+│   └── utils/
+│       ├── error-handler.js   # 错误处理
+│       └── param-validator.js # 参数验证和引导
 ├── scripts/
 │   └── generate-config.js     # 配置生成脚本
 ├── public/
 │   ├── index.html             # 前端主应用 ⭐
+│   ├── styles.css             # 样式文件（v2.1 拆分）
+│   ├── app.js                 # 前端逻辑（v2.1 拆分）
 │   └── config.js              # 前端配置（自动生成）
 ├── package.json               # Node.js 依赖配置
 ├── .env                       # 环境变量（API Key 配置）
@@ -170,7 +180,9 @@ chatbot/
 │   ├── ROADMAP.md            # 技术路线图（长期规划）🗺️
 │   ├── PROGRESS.md           # 实施进度（短期计划）📊
 │   ├── AVATAR_GUIDE.md       # 虚拟形象配置指南 🎨
-│   └── GITHUB_SETUP.md       # GitHub 配置指南 🐙
+│   ├── GITHUB_SETUP.md       # GitHub 配置指南 🐙
+│   └── design/               # 设计文档 📁
+│       └── function-calling-framework.md
 └── LICENSE                    # MIT 许可证
 ```
 
@@ -296,9 +308,13 @@ const avatarDatabase = {
 - [x] 错误处理和重试机制
 - [x] 本地开发环境
 
-### 短期（v2.1）
+### 短期（v2.2）
+- [x] 天气查询工具 🌤️
+- [x] 前端工具调用集成优化
 - [ ] 对话历史管理界面
 - [ ] 对话历史导出功能
+- [ ] 价格对比工具
+- [ ] 航班查询工具
 
 ### 中期（v2.5）
 - [ ] 多会话管理
@@ -350,9 +366,9 @@ MIT License - 详见 LICENSE 文件
 
 ---
 
-**最后更新**: 2026-01-12
-**版本**: 2.0.0
-**状态**: ✅ AI 已集成，可本地运行
+**最后更新**: 2026-01-16
+**版本**: 2.2.0
+**状态**: ✅ Function Calling 已集成，3 个工具可用
 **下一步**:
 - [搭建指南](docs/SETUP.md) - 5 分钟上手
 - [实施进度](docs/PROGRESS.md) - 查看已完成和待办任务

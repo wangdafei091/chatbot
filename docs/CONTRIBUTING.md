@@ -53,19 +53,30 @@
 
 ```
 后端核心：
-├── server.js (652行)
+├── server.js (900+行)
 │   ├── AIAdapter 类 - AI调用逻辑 ⭐
-│   └── API 路由 - /api/chat, /api/chat/stream
+│   │   ├── chatWithGLM() - GLM API调用（支持tools参数）
+│   │   ├── chatWithDeepSeek() - DeepSeek API调用（支持tools参数）
+│   │   └── chatWithTools() - 多轮工具调用协调器 ⭐
+│   └── API 路由 - /api/chat, /api/chat/stream, /api/chat/tools ⭐
 ├── config.js - 后端配置
 ├── config/validators.js - 配置验证
-└── config/frontend.config.js - 前端配置源
+├── config/frontend.config.js - 前端配置源
+└── tools/ ⭐ Function Calling 工具系统（v2.1 新增）
+    ├── index.js - 工具注册表 + 执行器
+    ├── text-tools.js - 文本处理工具（2个）
+    ├── weather-tools.js - 天气查询工具 🌤️（v2.2 新增）
+    └── utils/
+        ├── error-handler.js
+        └── param-validator.js
 
 前端核心：
-└── public/index.html (1200行)
-    ├── UI渲染
-    ├── sendMessage() - 发送消息 ⭐
-    ├── fetchStream() - SSE处理 ⭐
-    └── localStorage管理
+├── public/index.html (140行) - UI结构
+├── public/styles.css (800+行) - 样式
+├── public/app.js (400+行) ⭐
+│   ├── sendMessage() - 发送消息（支持JSON和SSE）
+│   ├── fetchStream() - SSE处理
+│   └── localStorage管理
 
 关键文件：
 ├── scripts/generate-config.js - 生成前端配置 ⚠️ 自动运行
