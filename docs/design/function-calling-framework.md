@@ -3799,10 +3799,10 @@ try {
 
 ### 10.2 相关文档
 
+- `CLAUDE.md` - AI 编码助手工作指南（包含 AI 行为准则）
 - `docs/ARCHITECTURE.md` - 项目架构文档
 - `docs/CONTRIBUTING.md` - 开发指南
 - `docs/PROGRESS.md` - 实施进度
-- `docs/AI_PROMPTS.md` - AI 开发提示词指南
 
 ---
 

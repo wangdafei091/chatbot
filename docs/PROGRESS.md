@@ -43,14 +43,6 @@
 
 ### 技术实现要点
 
-**原始结构**：
-```html
-public/index.html (1278 行)
-├── <style> CSS (808 行)
-├── <body> HTML (~100 行)
-└── <script> JavaScript (~331 行)
-```
-
 **优化后结构**：
 ```
 public/
@@ -58,29 +50,6 @@ public/
 ├── styles.css (806 行) - 所有样式
 └── app.js (329 行) - 所有 JavaScript 逻辑
 ```
-
-**引用方式**：
-```html
-<!-- 在 <head> 中 -->
-<link rel="stylesheet" href="/styles.css">
-
-<!-- 在 </body> 前 -->
-<script src="/app.js"></script>
-```
-
-### 遇到的问题和解决方案
-
-**问题 1**：CSS 显示不正常
-- **原因**：提取的 CSS 文件每行前面有多余空格缩进
-- **解决**：使用 `sed 's/^[[:space:]]*//'` 去除所有行首缩进
-
-**问题 2**：JavaScript 语法错误（`Unexpected token '<'`）
-- **原因**：app.js 文件末尾包含 HTML 标签（`</script>`、`</body>`）
-- **解决**：精确提取 `<script>` 和 `</script>` 之间的内容，排除 HTML 标签
-
-**问题 3**：快速开始按钮点击无效
-- **原因**：问题 2 导致 JavaScript 加载失败，函数未定义
-- **解决**：修复问题 2 后恢复正常
 
 ### 收益
 
@@ -128,40 +97,17 @@ public/
 ### 技术实现要点
 
 **后端架构**：
-```javascript
-server.js (587 行)
-├── AIAdapter 类
-│   ├── chatWithGLM()              // 普通响应
-│   ├── chatWithDeepSeek()         // 普通响应
-│   ├── chatWithGLMStream()        // ✨ 流式响应
-│   └── chatWithDeepSeekStream()   // ✨ 流式响应
-├── API 路由
-│   ├── GET  /api/health
-│   ├── GET  /api/models
-│   ├── POST /api/chat
-│   ├── POST /api/chat/stream      // ✨ 流式接口
-│   ├── POST /api/set-model
-│   └── GET  /api/config
-└── 静态文件服务
-```
+- ✅ AIAdapter 类（支持 GLM-4 和 DeepSeek 的普通/流式调用）
+- ✅ API 路由（健康检查、模型列表、聊天接口、流式接口）
+- ✅ 静态文件服务
 
 **前端实现**：
-```javascript
-// index.html (1272 行)
-├── API 配置
-│   ├── API_BASE_URL
-│   └── currentProvider
-├── 对话历史管理
-│   ├── conversationHistory
-│   ├── saveConversationHistory()
-│   └── loadConversationHistory()
-├── 流式响应处理 ✨
-│   ├── sendMessage() - 使用 /api/chat/stream
-│   ├── ReadableStream 读取
-│   ├── SSE 数据解析
-│   └── 实时打字机效果
-└── 错误处理
-```
+- ✅ 对话历史管理（localStorage）
+- ✅ 流式响应处理（SSE + ReadableStream）
+- ✅ 实时打字机效果
+- ✅ 错误处理
+
+> 📋 **详细架构设计**：完整的技术栈选择理由和系统架构请参阅 [docs/ARCHITECTURE.md](ARCHITECTURE.md)
 
 ### 测试结果
 
@@ -302,86 +248,17 @@ server.js (587 行)
 ### 技术实现要点
 
 **已实现的核心框架**：
-```javascript
-tools/
-├── index.js                 # ToolRegistry + ToolExecutor (254 行)
-├── text-tools.js            # 文本处理工具（2个）(211 行)
-├── weather-tools.js         # 天气查询工具（1个）(117 行) 🌤️ 新增
-└── utils/
-    ├── error-handler.js     # 错误处理模块 (138 行)
-    └── param-validator.js   # 参数验证和智能引导 (263 行)
-
-server.js 增强：
-├── AIAdapter.formatMessages()      # 支持工具调用消息格式
-├── AIAdapter.chatWithGLM()         # 添加 tools 参数
-├── AIAdapter.chatWithDeepSeek()    # 添加 tools 参数
-└── AIAdapter.chatWithTools()       # 多轮工具调用协调器（新）✨
-
-API 接口：
-├── GET /api/tools           # 获取工具列表 ✅
-└── POST /api/chat/tools     # AI 原生 Function Calling ✅
-```
-
-**已注册的工具**：
-- `summarizeArticle` - 总结文章的关键信息
-- `extractKeyInfo` - 提取文章中的关键信息
-- `getWeather` - 查询实时天气（2026-01-16 新增）🌤️
+- ✅ ToolRegistry + ToolExecutor（工具注册表和执行器）
+- ✅ 文本处理工具（2个）：文章总结、关键信息提取
+- ✅ 天气查询工具（2026-01-16 新增）🌤️
+- ✅ AI 原生 Function Calling（GLM-4 + DeepSeek）
+- ✅ 多轮工具调用（最多 5 轮）
+- ✅ 错误处理模块（AppError 类）
 
 **天气查询工具**（2026-01-16 新增）：
-- ✅ **API 源**：wttr.in（完全免费，无需 key）
-- ✅ **功能**：实时天气查询
-- ✅ **数据**：温度、体感温度、湿度、风速、天气状况、紫外线指数等
-- ✅ **支持**：中英文城市名称
-- ✅ **测试**：北京、上海、深圳等多城市测试通过
-
-**AI 原生 Function Calling**（2026-01-16 新增）：
-- ✅ **GLM-4 支持**：使用智谱 AI 的原生 Function Calling API
-- ✅ **DeepSeek 支持**：使用 DeepSeek 的原生 Tool Calls API
-- ✅ **多轮调用**：最多支持 5 轮工具调用循环
-- ✅ **工具结果整合**：AI 自动将工具结果整合到回复中
-- ✅ **降级机制**：当 Function Calling 不可用时自动降级到普通对话
-
-**实现原理**：
-```javascript
-// 1. AI 调用时传入 tools 参数
-const response = await ai.chat({
-    model: "glm-4",
-    messages: [...],
-    tools: [
-        {
-            type: "function",
-            function: {
-                name: "summarizeArticle",
-                description: "总结文章的关键信息",
-                parameters: {...}
-            }
-        }
-    ]
-});
-
-// 2. AI 返回 tool_calls
-{
-    role: "assistant",
-    tool_calls: [
-        {
-            id: "call_123",
-            function: {
-                name: "summarizeArticle",
-                arguments: '{"content": "..."}'
-            }
-        }
-    ]
-}
-
-// 3. 执行工具并返回结果
-{
-    role: "tool",
-    tool_call_id: "call_123",
-    content: '{"summary": "..."}'
-}
-
-// 4. AI 基于工具结果生成最终回复
-```
+- ✅ API 源：wttr.in（完全免费，无需 key）
+- ✅ 支持：中英文城市名称
+- ✅ 测试：北京、上海、深圳等多城市测试通过
 
 **测试结果**：
 - ✅ GLM-4 Function Calling 测试通过
@@ -389,26 +266,18 @@ const response = await ai.chat({
 - ✅ 多轮工具调用测试通过
 - ✅ 降级机制测试通过
 
+> 📋 **详细技术实现**：完整的架构设计、代码结构、实现原理请参阅 [docs/design/function-calling-framework.md](design/function-calling-framework.md)
+
 ### 实施计划
 
 > 📋 **详细设计**：完整的实施步骤（包含任务分解、时间估算、验收标准）请参阅 [docs/design/function-calling-framework.md#5-实施步骤分解](../design/function-calling-framework.md#5-实施步骤分解)
 
 **阶段3概览**：
-- **阶段 0**：代码结构优化（1-2小时）- 拆分 index.html → index.html + styles.css + app.js
-- **第1步**：基础框架 + 错误处理 + 快速开始（2-2.5天）
-  - A 部分：ToolRegistry + ToolExecutor（10.5h）
-  - C 部分：基础错误处理（2h）⭐ 必需
-  - B 部分：快速开始 Aha Moment（4.5h）
-- **第2.5步**：用户上下文系统（4.5h）- 客户端 localStorage，个性化支持 🟡 P1
-- **第2步**：智能引导（0.5-1天）- 参数不完整时主动询问
-- **第3步**：测试和文档（1天）- 功能测试、性能优化
-
-**关键特性**：
-- ✅ **Aha Moment**：新用户 10 秒内体验价值（快速开始按钮）
-- ✅ **基础错误处理**：用户友好的错误提示，应用不崩溃
-- ✅ **代码结构优化**：拆分 1200+ 行的 index.html，提升可维护性
-- ✅ **简化设计**：使用简单函数而非适配器架构（YAGNI 原则）
-- ✅ **客户端用户上下文**：localStorage 管理，无数据库，符合轻量级定位
+- **阶段 0**：代码结构优化 - 拆分 index.html → index.html + styles.css + app.js ✅
+- **第1步**：基础框架 + 快速开始 - ToolRegistry + ToolExecutor + Aha Moment ✅
+- **第2.5步**：用户上下文系统 - 客户端 localStorage ✅
+- **第2步**：智能引导 - AI 原生参数引导 ✅
+- **第3步**：测试和文档 - 功能测试、性能优化 ✅
 
 ---
 
