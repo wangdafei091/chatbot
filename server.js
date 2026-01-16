@@ -81,11 +81,32 @@ class AIAdapter {
      * 格式化消息历史
      */
     static formatMessages(message, history = []) {
-        const messages = history.map(msg => ({
-            role: msg.role === 'assistant' ? 'assistant' : 'user',
-            content: msg.content
-        }));
-        messages.push({ role: 'user', content: message });
+        const messages = history.map(msg => {
+            const formatted = { role: msg.role };
+
+            // 处理工具调用相关的消息
+            if (msg.role === 'assistant' && msg.tool_calls) {
+                formatted.tool_calls = msg.tool_calls;
+                // 只有当 content 存在时才添加（避免 null 值）
+                if (msg.content) {
+                    formatted.content = msg.content;
+                }
+            } else if (msg.role === 'tool') {
+                formatted.tool_call_id = msg.tool_call_id;
+                formatted.content = msg.content;
+            } else {
+                formatted.content = msg.content;
+            }
+
+            return formatted;
+        });
+
+        // 只有当不是工具响应消息时才添加用户消息
+        const lastMsg = history[history.length - 1];
+        if (!lastMsg || lastMsg.role !== 'tool') {
+            messages.push({ role: 'user', content: message });
+        }
+
         return messages;
     }
 
@@ -93,21 +114,28 @@ class AIAdapter {
      * GLM (智谱AI) API 调用
      * 文档：https://open.bigmodel.cn/dev/api
      */
-    static async chatWithGLM(message, history = []) {
+    static async chatWithGLM(message, history = [], tools = null) {
         const API_KEY = this.getApiKey('glm');
         const messages = this.formatMessages(message, history);
         const cfg = config.ai.glm;
 
+        const requestBody = {
+            model: cfg.model,
+            messages: messages,
+            temperature: cfg.temperature,
+            top_p: cfg.top_p,
+            max_tokens: cfg.max_tokens
+        };
+
+        // 添加 tools 参数（如果提供）
+        if (tools && Array.isArray(tools) && tools.length > 0) {
+            requestBody.tools = tools;
+        }
+
         try {
             const response = await axios.post(
                 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
-                {
-                    model: cfg.model,
-                    messages: messages,
-                    temperature: cfg.temperature,
-                    top_p: cfg.top_p,
-                    max_tokens: cfg.max_tokens
-                },
+                requestBody,
                 {
                     headers: {
                         'Authorization': `Bearer ${API_KEY}`,
@@ -117,8 +145,11 @@ class AIAdapter {
                 }
             );
 
+            const aiMessage = response.data.choices[0].message;
+
             return {
-                content: response.data.choices[0].message.content,
+                content: aiMessage.content,
+                tool_calls: aiMessage.tool_calls || null,
                 model: cfg.model,
                 usage: response.data.usage
             };
@@ -132,20 +163,27 @@ class AIAdapter {
      * DeepSeek API 调用
      * 文档：https://platform.deepseek.com/api-docs
      */
-    static async chatWithDeepSeek(message, history = []) {
+    static async chatWithDeepSeek(message, history = [], tools = null) {
         const API_KEY = this.getApiKey('deepseek');
         const messages = this.formatMessages(message, history);
         const cfg = config.ai.deepseek;
 
+        const requestBody = {
+            model: cfg.model,
+            messages: messages,
+            temperature: cfg.temperature,
+            max_tokens: cfg.max_tokens
+        };
+
+        // 添加 tools 参数（如果提供）
+        if (tools && Array.isArray(tools) && tools.length > 0) {
+            requestBody.tools = tools;
+        }
+
         try {
             const response = await axios.post(
                 'https://api.deepseek.com/v1/chat/completions',
-                {
-                    model: cfg.model,
-                    messages: messages,
-                    temperature: cfg.temperature,
-                    max_tokens: cfg.max_tokens
-                },
+                requestBody,
                 {
                     headers: {
                         'Authorization': `Bearer ${API_KEY}`,
@@ -155,8 +193,11 @@ class AIAdapter {
                 }
             );
 
+            const aiMessage = response.data.choices[0].message;
+
             return {
-                content: response.data.choices[0].message.content,
+                content: aiMessage.content,
+                tool_calls: aiMessage.tool_calls || null,
                 model: cfg.model,
                 usage: response.data.usage
             };
@@ -378,6 +419,119 @@ class AIAdapter {
                 throw new Error(`不支持的 AI 提供商: ${provider}`);
         }
     }
+
+    /**
+     * 带工具调用的 AI 对话（支持多轮工具调用）
+     * @param {String} provider - AI 提供商
+     * @param {String} message - 用户消息
+     * @param {Array} history - 对话历史
+     * @param {Array} tools - 工具定义数组
+     * @param {Number} maxIterations - 最大工具调用轮数
+     * @returns {Promise<Object>} - 对话结果
+     */
+    static async chatWithTools(provider, message, history = [], tools = null, maxIterations = 5) {
+        if (!tools || tools.length === 0) {
+            // 没有工具，直接调用普通对话
+            return await this.chat(provider, message, history);
+        }
+
+        console.log(`[Function Calling] 开始处理，provider: ${provider}, tools: ${tools.length} 个`);
+
+        let currentHistory = [...history];
+        let currentMessage = message;
+        let iteration = 0;
+
+        while (iteration < maxIterations) {
+            iteration++;
+            console.log(`[Function Calling] 第 ${iteration} 轮调用`);
+
+            // 调用 AI API（传入工具）
+            let response;
+            switch (provider) {
+                case 'glm':
+                    response = await this.chatWithGLM(currentMessage, currentHistory, tools);
+                    break;
+                case 'deepseek':
+                    response = await this.chatWithDeepSeek(currentMessage, currentHistory, tools);
+                    break;
+                default:
+                    throw new Error(`不支持的 AI 提供商: ${provider}`);
+            }
+
+            // 将 AI 的响应添加到历史
+            const assistantMessage = {
+                role: 'assistant',
+                content: response.content
+            };
+
+            // 如果有工具调用，添加到消息中
+            if (response.tool_calls) {
+                assistantMessage.tool_calls = response.tool_calls;
+                console.log(`[Function Calling] AI 请求调用 ${response.tool_calls.length} 个工具`);
+            }
+
+            currentHistory.push(assistantMessage);
+
+            // 检查是否有工具调用
+            if (!response.tool_calls || response.tool_calls.length === 0) {
+                // 没有工具调用，返回 AI 的回复
+                console.log(`[Function Calling] 无工具调用，返回 AI 回复`);
+                return response;
+            }
+
+            // 执行工具调用
+            const toolResults = [];
+
+            for (const toolCall of response.tool_calls) {
+                const toolName = toolCall.function.name;
+                const toolArgs = JSON.parse(toolCall.function.arguments);
+
+                console.log(`[Function Calling] 执行工具: ${toolName}`, toolArgs);
+
+                try {
+                    // 执行工具
+                    const result = await toolExecutor.executeTool(toolName, toolArgs);
+
+                    // 构造工具结果消息
+                    toolResults.push({
+                        role: 'tool',
+                        tool_call_id: toolCall.id,
+                        content: JSON.stringify(result)
+                    });
+
+                    console.log(`[Function Calling] 工具 ${toolName} 执行成功`);
+                } catch (error) {
+                    console.error(`[Function Calling] 工具 ${toolName} 执行失败:`, error.message);
+
+                    // 返回错误信息给 AI
+                    toolResults.push({
+                        role: 'tool',
+                        tool_call_id: toolCall.id,
+                        content: JSON.stringify({
+                            success: false,
+                            error: error.message
+                        })
+                    });
+                }
+            }
+
+            // 将工具结果添加到历史
+            currentHistory.push(...toolResults);
+
+            // 清空 currentMessage（因为工具结果已经通过历史传递）
+            currentMessage = null;
+        }
+
+        // 达到最大迭代次数
+        console.warn(`[Function Calling] 达到最大迭代次数 (${maxIterations})`);
+        const lastMessage = currentHistory[currentHistory.length - 1];
+        return {
+            content: lastMessage.content || '工具调用达到最大迭代次数',
+            tool_calls: null,
+            model: 'unknown',
+            usage: null
+        };
+    }
 }
 
 // ==================== API 路由 ====================
@@ -458,13 +612,13 @@ app.post('/api/chat', async (req, res) => {
 });
 
 /**
- * 聊天接口（流式）
+ * 聊天接口（流式，支持 Function Calling）
  * POST /api/chat/stream
- * Body: { message: string, history: array, provider: string }
+ * Body: { message: string, history: array, provider: string, useTools: boolean }
  * 返回: Server-Sent Events (SSE)
  */
 app.post('/api/chat/stream', async (req, res) => {
-    const { message, history = [], provider = config.api.defaultProvider } = req.body;
+    const { message, history = [], provider = config.api.defaultProvider, useTools = true } = req.body;
 
     // 验证请求
     if (!message || typeof message !== 'string') {
@@ -480,6 +634,36 @@ app.post('/api/chat/stream', async (req, res) => {
             code: 'MESSAGE_TOO_LONG'
         });
     }
+
+    // 如果需要使用工具且有可用工具，改用工具调用接口
+    if (useTools && toolRegistry.size() > 0) {
+        console.log('[Stream] useTools=true, switching to tools endpoint');
+
+        try {
+            const result = await AIAdapter.chatWithTools(
+                provider,
+                message,
+                history,
+                toolRegistry.getAllToolDefinitions()
+            );
+
+            // 返回工具调用结果（非流式）
+            return res.json({
+                reply: result.content,
+                model: result.model,
+                usage: result.usage,
+                provider: provider,
+                toolsUsed: result.tool_calls !== null,
+                toolResults: result.tool_calls || []
+            });
+        } catch (error) {
+            console.error('[Stream] Tools endpoint error, falling back to stream:', error.message);
+            // 如果工具调用失败，降级到流式接口
+        }
+    }
+
+    // 使用流式接口
+    console.log('[Stream] Using stream endpoint');
 
     // 设置 SSE 响应头
     res.setHeader('Content-Type', 'text/event-stream');
@@ -648,10 +832,10 @@ app.get('/api/tools', (req, res) => {
 });
 
 /**
- * POST /api/chat/tools - 带工具调用的聊天接口
+ * POST /api/chat/tools - 带工具调用的聊天接口（原生 Function Calling）
  *
- * 注意：这是一个简化版本，实际的 Function Calling 需要特定格式的 AI API 支持
- * 当前实现：检测用户意图，决定是否需要调用工具
+ * 使用 AI API 的原生 Function Calling 能力
+ * AI 会自动决定何时调用工具以及如何处理工具结果
  */
 app.post('/api/chat/tools', async (req, res) => {
     const { message, history = [], provider = process.env.DEFAULT_MODEL || 'glm' } = req.body;
@@ -667,93 +851,74 @@ app.post('/api/chat/tools', async (req, res) => {
     try {
         console.log('[Tools Chat] 收到消息:', message);
 
-        // 1. 分析用户意图
+        // 获取所有工具定义
         const availableTools = toolRegistry.getAllToolDefinitions();
-        const intent = analyzeIntent(message, availableTools);
+        console.log(`[Tools Chat] 可用工具: ${availableTools.length} 个`);
 
-        console.log('[Tools Chat] 意图分析:', intent);
+        if (availableTools.length === 0) {
+            // 没有可用工具，使用普通对话
+            console.log('[Tools Chat] 无可用工具，使用普通对话');
+            const result = await AIAdapter.chat(provider, message, history);
 
-        // 2. 如果识别到需要工具调用
-        if (intent.needTool && intent.toolName) {
-            console.log(`[Tools Chat] 识别到工具调用意图: ${intent.toolName}`);
-
-            const tool = toolRegistry.getTool(intent.toolName);
-            if (tool) {
-                // 3. 验证参数完整性
-                const validation = validateParams(tool.definition, message);
-
-                if (!validation.isComplete) {
-                    // 参数不完整，返回引导提示
-                    console.log('[Tools Chat] 参数不完整，生成引导提示');
-                    console.log('[Tools Chat] 缺失参数:', validation.missingParams.map(p => p.name));
-
-                    return res.json({
-                        reply: validation.prompt,
-                        model: 'smart-guidance',
-                        provider: provider,
-                        toolsUsed: false,
-                        needMoreInfo: true,
-                        missingParams: validation.missingParams.map(p => ({
-                            name: p.name,
-                            description: p.description
-                        })),
-                        guidance: true
-                    });
-                }
-
-                // 参数完整，执行工具
-                console.log('[Tools Chat] 参数完整，执行工具');
-                console.log('[Tools Chat] 提取的参数:', validation.foundParams);
-
-                try {
-                    const toolResult = await toolExecutor.executeTool(
-                        intent.toolName,
-                        validation.foundParams
-                    );
-
-                    // 将工具结果整合到 AI 回复中
-                    const aiPrompt = `工具执行结果：${JSON.stringify(toolResult.result)}\n\n请基于这个结果，用友好的语言回复用户。`;
-                    const aiResult = await AIAdapter.chat(provider, aiPrompt, []);
-
-                    return res.json({
-                        reply: aiResult.content,
-                        model: aiResult.model,
-                        usage: aiResult.usage,
-                        provider: provider,
-                        toolsUsed: true,
-                        toolResults: [toolResult]
-                    });
-
-                } catch (toolError) {
-                    console.error('[Tools Chat] 工具执行失败:', toolError);
-
-                    // 工具执行失败，返回错误提示
-                    return res.json({
-                        reply: `抱歉，工具执行遇到问题：${toolError.message}`,
-                        model: 'error',
-                        provider: provider,
-                        toolsUsed: false,
-                        error: toolError.message
-                    });
-                }
-            }
+            return res.json({
+                reply: result.content,
+                model: result.model,
+                usage: result.usage,
+                provider: provider,
+                toolsUsed: false,
+                toolResults: []
+            });
         }
 
-        // 4. 没有识别到工具调用意图，使用普通 AI 对话
-        console.log('[Tools Chat] 未识别到工具调用，使用普通对话');
-        const result = await AIAdapter.chat(provider, message, history);
+        // 使用原生 Function Calling
+        console.log('[Tools Chat] 使用原生 Function Calling');
+        const result = await AIAdapter.chatWithTools(
+            provider,
+            message,
+            history,
+            availableTools
+        );
+
+        // 判断是否使用了工具
+        const toolsUsed = result.usage && result.usage.total_tokens > 0;
 
         res.json({
             reply: result.content,
             model: result.model,
             usage: result.usage,
             provider: provider,
-            toolsUsed: false,
-            toolResults: []
+            toolsUsed: toolsUsed,
+            toolResults: result.tool_calls || []
         });
 
     } catch (error) {
         console.error('[Tools Chat] 错误:', error);
+
+        // 检查是否是 API 错误（可能是不支持 Function Calling）
+        if (error.message && error.message.includes('tool')) {
+            console.warn('[Tools Chat] AI 可能不支持 Function Calling，降级到普通对话');
+
+            try {
+                // 降级到普通对话
+                const fallbackResult = await AIAdapter.chat(provider, message, []);
+                return res.json({
+                    reply: fallbackResult.content,
+                    model: fallbackResult.model,
+                    usage: fallbackResult.usage,
+                    provider: provider,
+                    toolsUsed: false,
+                    toolResults: [],
+                    fallback: true,
+                    warning: 'Function Calling 不可用，使用普通对话'
+                });
+            } catch (fallbackError) {
+                console.error('[Tools Chat] 降级对话也失败:', fallbackError);
+                return res.status(500).json({
+                    error: fallbackError.message || '聊天失败',
+                    code: 'CHAT_ERROR'
+                });
+            }
+        }
 
         res.status(500).json({
             error: error.message || '聊天失败',

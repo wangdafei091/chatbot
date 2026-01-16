@@ -233,8 +233,14 @@ const toolExecutor = new ToolExecutor(toolRegistry);
 // 导入文本处理工具
 const textTools = require('./text-tools');
 
+// 导入天气查询工具
+const weatherTools = require('./weather-tools');
+
 // 注册所有文本处理工具
 toolRegistry.registerTools(textTools);
+
+// 注册所有天气查询工具
+toolRegistry.registerTools(weatherTools);
 
 console.log(`✓ 工具系统初始化完成，已注册 ${toolRegistry.size()} 个工具`);
 console.log('✓ 已注册工具:', toolRegistry.getToolNames().join(', '));

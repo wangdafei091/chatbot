@@ -597,6 +597,16 @@ box-shadow:
 0 8px 28px rgba(74, 67, 88, 0.06);
 }
 
+/* 工具使用指示器 */
+.tool-indicator {
+margin-top: 8px;
+padding-top: 8px;
+border-top: 1px solid rgba(0, 0, 0, 0.1);
+color: #666;
+font-size: 12px;
+opacity: 0.8;
+}
+
 .message-time {
 font-size: 11px;
 margin-top: var(--spacing-xs);

@@ -312,7 +312,7 @@ updateSendButton();
 showTypingIndicator();
 
 try {
-// 调用后端流式 API
+// 调用后端 API（支持流式和工具调用）
 const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
 method: 'POST',
 headers: {
@@ -321,7 +321,8 @@ headers: {
 body: JSON.stringify({
 message: message,
 history: conversationHistory.slice(0, -1),  // 不包含当前消息
-provider: currentProvider
+provider: currentProvider,
+useTools: true  // 启用工具调用
 })
 });
 
@@ -338,7 +339,47 @@ addMessage('', 'ai', aiMessageId);
 const messageElement = document.getElementById(aiMessageId);
 const contentElement = messageElement.querySelector('.bubble');
 
-// 读取流式响应
+// 检查响应类型
+const contentType = response.headers.get('content-type');
+
+// 如果返回 JSON（工具调用结果）
+if (contentType && contentType.includes('application/json')) {
+try {
+const data = await response.json();
+
+// 显示回复
+let fullResponse = data.reply || data.content || '';
+contentElement.textContent = fullResponse;
+
+// 显示工具使用提示
+if (data.toolsUsed) {
+const toolIndicator = document.createElement('div');
+toolIndicator.className = 'tool-indicator';
+toolIndicator.innerHTML = `<small>🔧 已使用工具</small>`;
+contentElement.appendChild(toolIndicator);
+}
+
+scrollToBottom();
+
+// 保存到对话历史
+if (fullResponse) {
+conversationHistory.push({
+role: 'assistant',
+content: fullResponse
+});
+saveConversationHistory();
+}
+
+return;
+} catch (error) {
+console.error('JSON 解析错误:', error);
+contentElement.textContent = '抱歉，服务暂时不可用，请稍后重试。';
+hideTypingIndicator();
+return;
+}
+}
+
+// 处理流式响应（SSE）
 const reader = response.body.getReader();
 const decoder = new TextDecoder();
 let fullResponse = '';
@@ -359,7 +400,7 @@ try {
 const parsed = JSON.parse(data);
 
 if (parsed.type === 'start') {
-console.log(`✓ 开始流式响应，模型: ${parsed.provider}`);
+// 开始流式响应
 } else if (parsed.type === 'content') {
 // 追加内容到消息
 fullResponse += parsed.content;
