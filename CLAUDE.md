@@ -135,7 +135,8 @@ npm run generate-config
    - 在 `docs/design/` 创建 `[feature-name].md`
    - 使用模板：`docs/design/.template.md`
    - 包含：需求分析、技术方案、代码结构、实施步骤、测试方案
-
+   - 设计文档编写严格按照`docs/design/README.md`的要求编写
+   
 4. **提交审核** ⚠️ **必须**
    - 将设计文档提交给项目维护者审核
    - 审核通过后才能进入实施阶段

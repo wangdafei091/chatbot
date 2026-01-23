@@ -11,6 +11,130 @@ status: '在线'
 const API_BASE_URL = window.CONFIG?.api?.baseUrl || '';
 const API_TIMEOUT = window.CONFIG?.api?.timeout || 30000;
 
+// ===== Toast 提示组件 =====
+/**
+ * Toast 提示组件
+ * 提供 lightweight 的用户反馈
+ */
+const Toast = {
+    // Toast 类型配置
+    types: {
+        error: {
+            icon: '❌',
+            duration: 5000,
+            className: 'error'
+        },
+        warning: {
+            icon: '⚠️',
+            duration: 4000,
+            className: 'warning'
+        },
+        success: {
+            icon: '✅',
+            duration: 3000,
+            className: 'success'
+        },
+        info: {
+            icon: 'ℹ️',
+            duration: 3000,
+            className: 'info'
+        }
+    },
+
+    /**
+     * 显示 Toast
+     * @param {String} message - 消息内容
+     * @param {String} type - 类型 (error/warning/success/info)
+     * @param {Number} duration - 持续时间（毫秒）
+     */
+    show(message, type = 'info', duration = null) {
+        const container = document.getElementById('toastContainer');
+        if (!container) {
+            console.error('Toast container not found');
+            return;
+        }
+
+        // 获取类型配置
+        const config = this.types[type] || this.types.info;
+        const toastDuration = duration || config.duration;
+
+        // 创建 Toast 元素
+        const toast = document.createElement('div');
+        toast.className = `toast ${config.className}`;
+
+        toast.innerHTML = `
+            <div class="toast-icon">${config.icon}</div>
+            <div class="toast-content">${this.escapeHtml(message)}</div>
+            <div class="toast-close">×</div>
+        `;
+
+        // 添加到容器
+        container.appendChild(toast);
+
+        // 自动消失
+        const timeoutId = setTimeout(() => {
+            this.remove(toast);
+        }, toastDuration);
+
+        // 点击关闭
+        toast.addEventListener('click', () => {
+            clearTimeout(timeoutId);
+            this.remove(toast);
+        });
+    },
+
+    /**
+     * 移除 Toast
+     * @param {HTMLElement} toast - Toast 元素
+     */
+    remove(toast) {
+        if (!toast || !toast.parentNode) return;
+
+        // 添加淡出动画
+        toast.style.animation = 'toast-fade-out 0.3s ease-out';
+
+        // 动画结束后移除
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    },
+
+    /**
+     * 快捷方法
+     */
+    error(message, duration) {
+        return this.show(message, 'error', duration);
+    },
+
+    warning(message, duration) {
+        return this.show(message, 'warning', duration);
+    },
+
+    success(message, duration) {
+        return this.show(message, 'success', duration);
+    },
+
+    info(message, duration) {
+        return this.show(message, 'info', duration);
+    },
+
+    /**
+     * 转义 HTML
+     * @param {String} text - 文本内容
+     * @returns {String} - 转义后的文本
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+};
+
+// 添加到 window 全局对象（方便调试）
+window.Toast = Toast;
+
 // 对话历史
 let conversationHistory = [];
 let currentProvider = window.CONFIG?.features?.defaultProvider || 'glm';
@@ -60,6 +184,7 @@ load() {
         }
     } catch (error) {
         console.error('加载用户上下文失败:', error);
+        Toast.warning('部分功能可能受影响，请检查存储权限');
     }
     return { ...this.defaultContext };
 },
@@ -72,6 +197,7 @@ save(context) {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(context));
     } catch (error) {
         console.error('保存用户上下文失败:', error);
+        Toast.warning('部分功能可能受影响，请检查存储权限');
     }
 },
 
@@ -373,7 +499,8 @@ saveConversationHistory();
 return;
 } catch (error) {
 console.error('JSON 解析错误:', error);
-contentElement.textContent = '抱歉，服务暂时不可用，请稍后重试。';
+Toast.error('服务响应异常，请稍后重试');
+contentElement.textContent = '抱歉，服务暂时不可用';
 hideTypingIndicator();
 return;
 }
@@ -436,9 +563,8 @@ saveConversationHistory();
 hideTypingIndicator();
 console.error('❌ 流式 API 调用失败:', error);
 
-// 显示错误消息
-const errorMessage = `抱歉，发生了错误：${error.message}`;
-addMessage(errorMessage, 'ai');
+// 显示 Toast 错误
+Toast.error(`发送失败：${error.message}`);
 
 // 移除用户消息（因为失败了）
 conversationHistory.pop();
@@ -452,6 +578,7 @@ localStorage.setItem('chatbot_history', JSON.stringify(conversationHistory));
 localStorage.setItem('chatbot_provider', currentProvider);
 } catch (error) {
 console.warn('无法保存对话历史:', error);
+Toast.warning('对话历史保存失败，请检查存储权限');
 }
 }
 
@@ -472,6 +599,7 @@ currentProvider = savedProvider;
 }
 } catch (error) {
 console.warn('无法加载对话历史:', error);
+Toast.warning('对话历史加载失败');
 }
 }
 

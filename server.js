@@ -32,12 +32,16 @@ const axios = require('axios');
 const rateLimit = require('express-rate-limit');
 const config = require('./config');
 const { toolRegistry, toolExecutor } = require('./tools');
+const { errorHandler, notFoundHandler } = require('./middleware/error-handler');
 
 const app = express();
 const PORT = config.server.port;
 
 // 导入参数验证工具
 const { validateParams, analyzeIntent } = require('./tools/utils/param-validator');
+
+// 导入错误处理工具
+const { asyncHandler, AppError, ErrorCodes } = require('./tools/utils/error-handler');
 
 // ==================== 中间件配置 ====================
 
@@ -569,47 +573,29 @@ app.get('/api/models', (req, res) => {
  * POST /api/chat
  * Body: { message: string, history: array, provider: string }
  */
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', asyncHandler(async (req, res) => {
     const { message, history = [], provider = process.env.DEFAULT_MODEL || 'glm' } = req.body;
 
     // 验证请求
     if (!message || typeof message !== 'string') {
-        return res.status(400).json({
-            error: '消息内容不能为空',
-            code: 'INVALID_MESSAGE'
-        });
+        throw new AppError('消息内容不能为空', 'INVALID_MESSAGE', 400);
     }
 
     if (message.length > 10000) {
-        return res.status(400).json({
-            error: '消息长度不能超过 10000 字符',
-            code: 'MESSAGE_TOO_LONG'
-        });
+        throw new AppError('消息长度不能超过 10000 字符', 'MESSAGE_TOO_LONG', 400);
     }
 
-    try {
-        // 调用 AI API
-        const result = await AIAdapter.chat(provider, message, history);
+    // 调用 AI API
+    const result = await AIAdapter.chat(provider, message, history);
 
-        // 返回结果
-        res.json({
-            reply: result.content,
-            model: result.model,
-            usage: result.usage,
-            provider: provider
-        });
-
-    } catch (error) {
-        console.error('Chat API Error:', error);
-
-        // 返回错误信息
-        res.status(500).json({
-            error: error.message || 'AI 服务暂时不可用，请稍后重试',
-            code: 'API_ERROR',
-            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        });
-    }
-});
+    // 返回结果
+    res.json({
+        reply: result.content,
+        model: result.model,
+        usage: result.usage,
+        provider: provider
+    });
+}));
 
 /**
  * 聊天接口（流式，支持 Function Calling）
@@ -617,22 +603,16 @@ app.post('/api/chat', async (req, res) => {
  * Body: { message: string, history: array, provider: string, useTools: boolean }
  * 返回: Server-Sent Events (SSE)
  */
-app.post('/api/chat/stream', async (req, res) => {
+app.post('/api/chat/stream', asyncHandler(async (req, res) => {
     const { message, history = [], provider = config.api.defaultProvider, useTools = true } = req.body;
 
     // 验证请求
     if (!message || typeof message !== 'string') {
-        return res.status(400).json({
-            error: '消息内容不能为空',
-            code: 'INVALID_MESSAGE'
-        });
+        throw new AppError('消息内容不能为空', 'INVALID_MESSAGE', 400);
     }
 
     if (message.length > config.validation.maxMessageLength) {
-        return res.status(400).json({
-            error: `消息长度不能超过 ${config.validation.maxMessageLength} 字符`,
-            code: 'MESSAGE_TOO_LONG'
-        });
+        throw new AppError(`消息长度不能超过 ${config.validation.maxMessageLength} 字符`, 'MESSAGE_TOO_LONG', 400);
     }
 
     // 如果需要使用工具且有可用工具，改用工具调用接口
@@ -755,21 +735,18 @@ app.post('/api/chat/stream', async (req, res) => {
             res.end();
         }
     }
-});
+}));
 
 /**
  * 切换默认模型
  * POST /api/set-model
  * Body: { provider: string }
  */
-app.post('/api/set-model', (req, res) => {
+app.post('/api/set-model', asyncHandler(async (req, res) => {
     const { provider } = req.body;
 
     if (!['glm', 'deepseek'].includes(provider)) {
-        return res.status(400).json({
-            error: '无效的模型提供商，必须是 glm 或 deepseek',
-            code: 'INVALID_PROVIDER'
-        });
+        throw new AppError('无效的模型提供商，必须是 glm 或 deepseek', 'INVALID_PROVIDER', 400);
     }
 
     // 检查对应的 API Key 是否配置
@@ -778,10 +755,7 @@ app.post('/api/set-model', (req, res) => {
         : process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
-        return res.status(400).json({
-            error: `${provider.toUpperCase()} API Key 未配置`,
-            code: 'API_KEY_NOT_CONFIGURED'
-        });
+        throw new AppError(`${provider.toUpperCase()} API Key 未配置`, 'API_KEY_NOT_CONFIGURED', 400);
     }
 
     process.env.DEFAULT_MODEL = provider;
@@ -791,7 +765,7 @@ app.post('/api/set-model', (req, res) => {
         message: `已切换到 ${provider.toUpperCase()} 模型`,
         currentModel: provider
     });
-});
+}));
 
 /**
  * 获取当前配置信息
@@ -811,25 +785,17 @@ app.get('/api/config', (req, res) => {
 /**
  * GET /api/tools - 获取所有已注册的工具
  */
-app.get('/api/tools', (req, res) => {
-    try {
-        const tools = toolRegistry.getToolNames();
-        const definitions = toolRegistry.getAllToolDefinitions();
+app.get('/api/tools', asyncHandler(async (req, res) => {
+    const tools = toolRegistry.getToolNames();
+    const definitions = toolRegistry.getAllToolDefinitions();
 
-        res.json({
-            success: true,
-            count: tools.length,
-            tools: tools,
-            definitions: definitions
-        });
-    } catch (error) {
-        console.error('获取工具列表失败:', error);
-        res.status(500).json({
-            error: '获取工具列表失败',
-            details: error.message
-        });
-    }
-});
+    res.json({
+        success: true,
+        count: tools.length,
+        tools: tools,
+        definitions: definitions
+    });
+}));
 
 /**
  * POST /api/chat/tools - 带工具调用的聊天接口（原生 Function Calling）
@@ -837,95 +803,56 @@ app.get('/api/tools', (req, res) => {
  * 使用 AI API 的原生 Function Calling 能力
  * AI 会自动决定何时调用工具以及如何处理工具结果
  */
-app.post('/api/chat/tools', async (req, res) => {
+app.post('/api/chat/tools', asyncHandler(async (req, res) => {
     const { message, history = [], provider = process.env.DEFAULT_MODEL || 'glm' } = req.body;
 
     // 验证请求
     if (!message || typeof message !== 'string') {
-        return res.status(400).json({
-            error: '消息内容不能为空',
-            code: 'INVALID_MESSAGE'
-        });
+        throw new AppError('消息内容不能为空', 'INVALID_MESSAGE', 400);
     }
 
-    try {
-        console.log('[Tools Chat] 收到消息:', message);
+    console.log('[Tools Chat] 收到消息:', message);
 
-        // 获取所有工具定义
-        const availableTools = toolRegistry.getAllToolDefinitions();
-        console.log(`[Tools Chat] 可用工具: ${availableTools.length} 个`);
+    // 获取所有工具定义
+    const availableTools = toolRegistry.getAllToolDefinitions();
+    console.log(`[Tools Chat] 可用工具: ${availableTools.length} 个`);
 
-        if (availableTools.length === 0) {
-            // 没有可用工具，使用普通对话
-            console.log('[Tools Chat] 无可用工具，使用普通对话');
-            const result = await AIAdapter.chat(provider, message, history);
+    if (availableTools.length === 0) {
+        // 没有可用工具，使用普通对话
+        console.log('[Tools Chat] 无可用工具，使用普通对话');
+        const result = await AIAdapter.chat(provider, message, history);
 
-            return res.json({
-                reply: result.content,
-                model: result.model,
-                usage: result.usage,
-                provider: provider,
-                toolsUsed: false,
-                toolResults: []
-            });
-        }
-
-        // 使用原生 Function Calling
-        console.log('[Tools Chat] 使用原生 Function Calling');
-        const result = await AIAdapter.chatWithTools(
-            provider,
-            message,
-            history,
-            availableTools
-        );
-
-        // 判断是否使用了工具
-        const toolsUsed = result.usage && result.usage.total_tokens > 0;
-
-        res.json({
+        return res.json({
             reply: result.content,
             model: result.model,
             usage: result.usage,
             provider: provider,
-            toolsUsed: toolsUsed,
-            toolResults: result.tool_calls || []
-        });
-
-    } catch (error) {
-        console.error('[Tools Chat] 错误:', error);
-
-        // 检查是否是 API 错误（可能是不支持 Function Calling）
-        if (error.message && error.message.includes('tool')) {
-            console.warn('[Tools Chat] AI 可能不支持 Function Calling，降级到普通对话');
-
-            try {
-                // 降级到普通对话
-                const fallbackResult = await AIAdapter.chat(provider, message, []);
-                return res.json({
-                    reply: fallbackResult.content,
-                    model: fallbackResult.model,
-                    usage: fallbackResult.usage,
-                    provider: provider,
-                    toolsUsed: false,
-                    toolResults: [],
-                    fallback: true,
-                    warning: 'Function Calling 不可用，使用普通对话'
-                });
-            } catch (fallbackError) {
-                console.error('[Tools Chat] 降级对话也失败:', fallbackError);
-                return res.status(500).json({
-                    error: fallbackError.message || '聊天失败',
-                    code: 'CHAT_ERROR'
-                });
-            }
-        }
-
-        res.status(500).json({
-            error: error.message || '聊天失败',
-            code: error.code || 'CHAT_ERROR'
+            toolsUsed: false,
+            toolResults: []
         });
     }
-});
+
+    // 使用原生 Function Calling
+    console.log('[Tools Chat] 使用原生 Function Calling');
+    const result = await AIAdapter.chatWithTools(
+        provider,
+        message,
+        history,
+        availableTools
+    );
+
+    // 判断是否使用了工具
+    const toolsUsed = result.usage && result.usage.total_tokens > 0;
+
+    res.json({
+        reply: result.content,
+        model: result.model,
+        usage: result.usage,
+        provider: provider,
+        toolsUsed: toolsUsed,
+        toolResults: result.tool_calls || []
+    });
+}));
 
 // ==================== 静态文件服务 ====================
 
@@ -939,22 +866,11 @@ app.get('*', (req, res) => {
 
 // ==================== 错误处理 ====================
 
-// 404 处理
-app.use((req, res) => {
-    res.status(404).json({
-        error: '接口不存在',
-        path: req.path
-    });
-});
+// 404 处理（使用统一错误处理器）
+app.use(notFoundHandler);
 
-// 全局错误处理
-app.use((err, req, res, next) => {
-    console.error('Server Error:', err);
-    res.status(500).json({
-        error: '服务器内部错误',
-        details: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-});
+// 全局错误处理（使用统一错误中间件）
+app.use(errorHandler);
 
 // ==================== 启动服务器 ====================
 
