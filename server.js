@@ -91,10 +91,8 @@ class AIAdapter {
             // 处理工具调用相关的消息
             if (msg.role === 'assistant' && msg.tool_calls) {
                 formatted.tool_calls = msg.tool_calls;
-                // 只有当 content 存在时才添加（避免 null 值）
-                if (msg.content) {
-                    formatted.content = msg.content;
-                }
+                // Assistant messages with tool_calls must have content field (can be null or empty string)
+                formatted.content = msg.content || null;
             } else if (msg.role === 'tool') {
                 formatted.tool_call_id = msg.tool_call_id;
                 formatted.content = msg.content;
@@ -105,9 +103,9 @@ class AIAdapter {
             return formatted;
         });
 
-        // 只有当不是工具响应消息时才添加用户消息
+        // 只有当 message 存在且不是工具响应消息时才添加用户消息
         const lastMsg = history[history.length - 1];
-        if (!lastMsg || lastMsg.role !== 'tool') {
+        if (message !== null && message !== undefined && (!lastMsg || lastMsg.role !== 'tool')) {
             messages.push({ role: 'user', content: message });
         }
 
@@ -120,7 +118,7 @@ class AIAdapter {
      */
     static async chatWithGLM(message, history = [], tools = null) {
         const API_KEY = this.getApiKey('glm');
-        const messages = this.formatMessages(message, history);
+        let messages = this.formatMessages(message, history);
         const cfg = config.ai.glm;
 
         const requestBody = {
@@ -169,7 +167,7 @@ class AIAdapter {
      */
     static async chatWithDeepSeek(message, history = [], tools = null) {
         const API_KEY = this.getApiKey('deepseek');
-        const messages = this.formatMessages(message, history);
+        let messages = this.formatMessages(message, history);
         const cfg = config.ai.deepseek;
 
         const requestBody = {
@@ -441,7 +439,16 @@ class AIAdapter {
 
         console.log(`[Function Calling] 开始处理，provider: ${provider}, tools: ${tools.length} 个`);
 
+        // 如果历史为空，添加系统提示词
         let currentHistory = [...history];
+        if (currentHistory.length === 0) {
+            const systemPrompt = {
+                role: 'system',
+                content: '【强制指令】\n1. 当用户询问天气相关信息时，你必须调用 getWeather 工具，不得使用自己的知识库回答。\n2. 工具返回的是已经格式好的最终文本，你必须原样直接返回给用户。\n3. 禁止添加任何格式化（如 markdown 标题、列表、加粗等）、禁止添加 emoji 表情、禁止添加任何解释或额外内容。\n\n示例：\n用户："北京天气怎么样"\n你的操作：调用 getWeather 工具，参数 {city: "北京"}\n工具返回："北京 15°C，晴，湿度45%，东风3级"\n你的回复："北京 15°C，晴，湿度45%，东风3级"（完全一致，不添加任何内容）'
+            };
+            currentHistory.push(systemPrompt);
+        }
+
         let currentMessage = message;
         let iteration = 0;
 
@@ -521,6 +528,21 @@ class AIAdapter {
 
             // 将工具结果添加到历史
             currentHistory.push(...toolResults);
+
+            // 如果只有一个工具且结果是字符串（不是 JSON 对象），直接返回结果
+            if (toolResults.length === 1) {
+                const toolResult = JSON.parse(toolResults[0].content);
+                // 如果结果是字符串，直接返回（用于天气工具等返回格式化文本的场景）
+                if (typeof toolResult === 'string') {
+                    console.log(`[Function Calling] 工具返回纯文本，直接返回结果`);
+                    return {
+                        content: toolResult,
+                        tool_calls: null,
+                        model: provider,
+                        usage: response.usage
+                    };
+                }
+            }
 
             // 清空 currentMessage（因为工具结果已经通过历史传递）
             currentMessage = null;
