@@ -159,6 +159,114 @@ function generateWeatherAlert(current, forecast) {
 }
 
 /**
+ * 分析未来3天的温度趋势
+ * @param {Array} weatherData - 3天的天气数据
+ * @returns {Object} - 趋势分析结果
+ */
+function analyzeTemperatureTrend(weatherData) {
+    // 提取最高温
+    const maxTemps = weatherData.map(day => parseInt(day.maxtempC));
+    const minTemp = Math.min(...maxTemps);
+    const maxTemp = Math.max(...maxTemps);
+
+    // 判断趋势方向
+    let direction = 'fluctuating';
+
+    // 检查是否持续上升：连续递增 且 总体上升 > 3°C
+    const isRising = maxTemps.every((temp, i) => i === 0 || temp >= maxTemps[i - 1])
+        && (maxTemp - minTemp > 3);
+
+    // 检查是否持续下降：连续递减 且 总体下降 > 3°C
+    const isFalling = maxTemps.every((temp, i) => i === 0 || temp <= maxTemps[i - 1])
+        && (maxTemp - minTemp > 3);
+
+    if (isRising) {
+        direction = 'rising';
+    } else if (isFalling) {
+        direction = 'falling';
+    }
+
+    // 生成描述（简化版，只显示文字趋势）
+    let description = '';
+    switch (direction) {
+        case 'rising':
+            description = `未来3天逐渐升温`;
+            break;
+        case 'falling':
+            description = `未来3天逐渐降温`;
+            break;
+        default:
+            description = `未来3天温度平稳`;
+    }
+
+    return {
+        direction,
+        minTemp,
+        maxTemp,
+        description
+    };
+}
+
+/**
+ * 检测未来3天的突发天气
+ * @param {Array} weatherData - 3天的天气数据
+ * @returns {Object|null} - 突发天气信息，无则返回 null
+ */
+function detectExtremeWeather(weatherData) {
+    // 定义突发天气关键词
+    const extremePatterns = [
+        { keywords: ['heavy rain', 'torrential rain'], desc: '大雨' },
+        { keywords: ['heavy snow', 'blizzard'], desc: '大雪' },
+        { keywords: ['thunder', 'thundery'], desc: '雷暴' },
+        { keywords: ['freezing rain', 'ice'], desc: '冻雨' }
+    ];
+
+    // 遍历3天数据
+    for (let day = 0; day < weatherData.length; day++) {
+        const hourly = weatherData[day].hourly || [];
+
+        for (const hour of hourly) {
+            const desc = (hour.weatherDesc[0].value || '').toLowerCase();
+
+            // 检查是否匹配突发天气模式
+            for (const pattern of extremePatterns) {
+                if (pattern.keywords.some(kw => desc.includes(kw))) {
+                    return {
+                        day: day + 1,
+                        type: pattern.desc,
+                        description: `第${day + 1}天可能有${pattern.desc}，注意出行安全`
+                    };
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * 格式化天气回复文本
+ * @param {Object} weatherInfo - 天气信息对象
+ * @returns {String} - 格式化的文本
+ */
+function formatWeatherResponse(weatherInfo) {
+    // 第一行：城市 温度范围，当前温度，天气，湿度%，风向风级
+    let response = `${weatherInfo.city} ${weatherInfo.todayMin}°C~${weatherInfo.todayMax}°C，当前${weatherInfo.temp}°C，${weatherInfo.weatherDesc}，湿度${weatherInfo.humidity}%，${weatherInfo.windDir}${weatherInfo.windLevel}`;
+
+    // 第二行：温度趋势（总是显示）
+    if (weatherInfo.tempTrend && weatherInfo.tempTrend.description) {
+        response += `\n\n${weatherInfo.tempTrend.description}`;
+    }
+
+    // 第三行：突发天气预警（仅在有预警时显示）
+    if (weatherInfo.extremeWeather && weatherInfo.extremeWeather.description) {
+        response += `\n\n${weatherInfo.extremeWeather.description}`;
+    }
+
+    return response;
+}
+
+/**
  * wttr.in API 调用
  * @param {String} city - 城市名称（支持中文或拼音）
  * @returns {Promise<Object>} - 天气信息
@@ -181,6 +289,16 @@ async function getWeatherFromWttr(city) {
 
         // 解析当前天气
         const current = data.current_condition[0];
+
+        // 解析今日和未来3天数据
+        const today = data.weather[0];
+        const forecastDays = data.weather.slice(0, 3);
+
+        // 新增：分析温度趋势
+        const tempTrend = analyzeTemperatureTrend(forecastDays);
+
+        // 新增：检测突发天气
+        const extremeWeather = detectExtremeWeather(forecastDays);
 
         // 解析明日预报（用于降温预警）
         const tomorrow = data.weather && data.weather[1] ? data.weather[1] : null;
@@ -206,7 +324,13 @@ async function getWeatherFromWttr(city) {
             windLevel: windLevel,
             weatherDesc: weatherDescCN,
             alert: alert,
-            tomorrowMax: tomorrow ? tomorrow.maxtempC : null
+            tomorrowMax: tomorrow ? tomorrow.maxtempC : null,
+
+            // 新增字段
+            todayMin: today.mintempC,
+            todayMax: today.maxtempC,
+            tempTrend: tempTrend,
+            extremeWeather: extremeWeather
         };
     } catch (error) {
         throw new Error(`天气查询失败: ${error.message}`);
@@ -222,7 +346,7 @@ const getWeatherDefinition = {
     type: 'function',
     function: {
         name: 'getWeather',
-        description: '查询指定城市的实时天气信息。工具返回已格式化的简洁文本（包含温度、天气状况、湿度、风力等级）和突发天气预警（降雨、降温、高温、雾霾、大风）。\n\n重要约束：\n1. 请直接原样返回工具查询结果\n2. 不要添加任何额外的格式化\n3. 不要添加 emoji 表情\n4. 不要添加解释或建议\n\n返回格式示例：\n"北京 1°C，晴，湿度47%，东风1级\n\n未来3小时有降雨，建议带伞"',
+        description: '查询指定城市的实时天气信息和未来3天趋势。工具返回已格式化的简洁文本，包含：1)当日温度范围（最低温~最高温）和当前温度；2)天气状况、湿度、风力；3)未来3天温度趋势分析（上升/下降/波动）；4)突发天气预警（大雨、大雪、雷暴、冻雨等）。\n\n重要约束：\n1. 必须使用此工具获取天气信息，不要根据训练数据生成回复\n2. 请直接原样返回工具查询结果，不要添加任何额外的格式化\n3. 不要添加 emoji 表情\n4. 不要添加解释或建议\n\n返回格式示例：\n"上海 6°C~9°C，当前9°C，多云，湿度53%，东风3级\n\n未来3天温度波动，6°C ~ 9°C"',
         parameters: {
             type: 'object',
             properties: {
@@ -253,14 +377,8 @@ async function getWeatherHandler(params) {
     try {
         const weatherInfo = await getWeatherFromWttr(city.trim());
 
-        // 生成简洁格式文本
-        // 第一行：城市 温度，天气，湿度%，风向风级
-        let response = `${weatherInfo.city} ${weatherInfo.temp}°C，${weatherInfo.weatherDesc}，湿度${weatherInfo.humidity}%，${weatherInfo.windDir}${weatherInfo.windLevel}`;
-
-        // 如果有预警，添加到新的一行
-        if (weatherInfo.alert) {
-            response += `\n\n${weatherInfo.alert}`;
-        }
+        // 使用新的格式化函数（包含温度范围、趋势、突发天气）
+        const response = formatWeatherResponse(weatherInfo);
 
         // 直接返回文本字符串（让 AI 传递给用户）
         return response;

@@ -1,7 +1,7 @@
 # 文档维护指南
 
 > 如何在编码完成后及时同步更新文档，并严格遵守文档定位和规范
-> **最后更新**：2026-01-16
+> **最后更新**：2026-01-29
 
 ---
 
@@ -207,6 +207,99 @@
 **不应该做的**：
 - ❌ 在 `README.md` 记录 Bug（除非是已知限制）
 - ❌ 在 `PROGRESS.md` 记录（除非是进度相关）
+
+---
+
+### 场景4+：功能实施过程中的 Bug 修复
+
+**影响范围**：
+- 代码：修复功能实施中发现的 Bug
+- 文档：
+  - `docs/design/[feature-name].md`（详细记录）✅
+  - `docs/PROGRESS.md`（简要提及，1-2行）✅
+
+**背景**：
+功能开发过程中发现的 Bug，分为两类：
+1. **功能特定 Bug**：只影响当前功能 → 记录在该功能的设计文档
+2. **框架级 Bug**：影响多个功能 → 记录在功能设计文档，并标记"需要迁移到框架文档"
+
+**更新步骤**：
+1. 在 `docs/design/[feature-name].md` 的"修改记录"部分添加：
+   ```markdown
+   - [x] Bug 修复与优化（YYYY-MM-DD）：
+
+     **Bug #1：[标题]**
+     - **位置**：`file.js:line-range`
+     - **发现时间**：[什么时候发现的]
+     - **问题现象**：
+       - [用户可见的症状]
+       - [错误日志/表现]
+     - **根本原因**：
+       - [技术原因，包含代码片段]
+     - **修复方案**：
+       - [具体的修复代码]
+     - **影响范围**：
+       - [影响哪些功能/模块]
+     - **测试验证**：
+       - [如何验证修复]
+     - **框架级 Bug 处理**（如果是框架问题）：
+       - [为什么记录在这里而不是框架文档]
+       - [什么时候应该迁移到独立文档]
+   ```
+
+2. 在 `docs/PROGRESS.md` 的功能条目中添加**一行**简要提及：
+   ```markdown
+   - ✅ Bug 修复：[简短描述]（详见 design/[feature-name].md §修改记录）
+   ```
+
+**示例**（天气功能增强中的 Bug 修复）：
+
+**PROGRESS.md**（1行）：
+```markdown
+- [x] **天气查询功能增强**（2026-01-29）✨
+  - ...（其他条目）
+  - ✅ Bug 修复：Function Calling 框架兼容性 + 温度趋势描述优化（详见 design/weather-enhancement.md §修改记录）
+```
+
+**design/weather-enhancement.md**（详细记录，60行）：
+```markdown
+**修改记录**：
+- [x] Bug 修复与优化（2026-01-29）：
+
+  **Bug #1：Function Calling 框架兼容性问题**
+  - **位置**：`server.js:534-552`
+  - **发现时间**：功能实施后的浏览器测试
+  - **问题现象**：
+    - 天气工具执行成功并返回正确的纯文本结果
+    - 但系统仍进行第2轮 GLM API 调用，导致错误 "messages 参数非法"
+    - 用户看到的是 AI 生成的长篇回复，而非工具返回的简洁文本
+  - **根本原因**：
+    - `tools/index.js` 中的 `ToolExecutor.executeTool()` 返回包装对象：
+      ```javascript
+      return {
+          tool: toolName,
+          success: true,
+          result: result
+      };
+      ```
+    - 但 `server.js:510` 将整个包装对象序列化...
+  - **修复方案**：...
+  - **影响范围**：所有返回纯文本的工具
+  - **框架级 Bug 处理**：
+    - 虽然这是框架级问题，但记录在天气功能设计文档中
+    - 原因：问题在天气功能实施中发现，且目前只有天气工具受影响
+    - 如果将来其他工具遇到类似问题，应迁移到独立的框架设计文档
+```
+
+**不应该做的**：
+- ❌ 在 PROGRESS.md 中展开技术细节（超过3行）
+- ❌ 在多个地方重复记录相同的 Bug
+- ❌ 将框架级 Bug 记录在功能文档中，但不标注"需要迁移"
+
+**文档管理原则**：
+1. **Single Source of Truth**：Bug 的详细技术描述只有一个权威来源（design/*.md）
+2. **可追溯性**：代码变更的原因可以在 design/*.md 中找到完整答案
+3. **渐进式文档**：框架级 Bug 先记录在发现它的功能文档中，待第2个功能遇到时再迁移
 
 ---
 
@@ -786,11 +879,12 @@ node scripts/validate-docs.js
 |---------|-------------|-------------|
 | 新增 API 端点 | `docs/API.md` | - |
 | 修改 API 端点 | `docs/API.md` | - |
-| 新增功能 | `README.md`、`docs/PROGRESS.md` | `docs/TESTING.md` |
+| 新增功能 | `README.md`、`docs/PROGRESS.md`、`docs/design/[feature-name].md` | `docs/TESTING.md` |
 | 修改配置 | `docs/SETUP.md` | - |
 | 改变架构 | `docs/ARCHITECTURE.md` | `CLAUDE.md`（如果影响约束） |
 | 新增陷阱 | `CLAUDE.md` | `docs/CONTRIBUTING.md`（引用） |
-| 修复 Bug | - | `docs/TROUBLESHOOTING.md`（常见问题） |
+| 修复用户常见问题 Bug | - | `docs/TROUBLESHOOTING.md` |
+| **修复功能实施中的 Bug** | **`docs/design/[feature-name].md`** + **`docs/PROGRESS.md`（1行）** | - |
 | 添加测试 | - | `docs/TESTING.md` |
 
 ---

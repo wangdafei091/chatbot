@@ -532,11 +532,18 @@ class AIAdapter {
             // 如果只有一个工具且结果是字符串（不是 JSON 对象），直接返回结果
             if (toolResults.length === 1) {
                 const toolResult = JSON.parse(toolResults[0].content);
+
+                // 检查是否是工具执行器返回的包装对象 {tool, success, result}
+                let actualResult = toolResult;
+                if (typeof toolResult === 'object' && toolResult.success === true && toolResult.result !== undefined) {
+                    actualResult = toolResult.result;
+                }
+
                 // 如果结果是字符串，直接返回（用于天气工具等返回格式化文本的场景）
-                if (typeof toolResult === 'string') {
+                if (typeof actualResult === 'string') {
                     console.log(`[Function Calling] 工具返回纯文本，直接返回结果`);
                     return {
-                        content: toolResult,
+                        content: actualResult,
                         tool_calls: null,
                         model: provider,
                         usage: response.usage
